@@ -28,12 +28,19 @@
 		}
 	],
 	"shortcuts": [
-        {
-            "name": "Aujourd'hui",
-            "url": "./calendrier random.html",
-            "description": "Aller à aujourd'hui"
-        }
-    ],
+		{
+			"name": "Aujourd'hui",
+			"url": "./calendrier random.html",
+			"description": "Aller à aujourd'hui",
+			"icons": [
+				{
+					"src": "calendrier-96.png",
+					"sizes": "96x96",
+					"type": "image/png"
+				}
+			]
+		}
+	],
     "protocol_handlers": [
         {
             "protocol": "web+calendrier",
