@@ -1,0 +1,4945 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="theme-color" content="#24283a">
+	<meta name="description" content="Mon calendrier mensuel personnalisé">
+	<link rel="manifest" href="manifest.json">
+    <title>Mon Calendrier Mensuel</title>
+    <!-- Favicon dynamique par défaut (sera remplacé par une de tes images) -->
+    <link id="favicon" rel="icon" type="image/png" href="">
+    <style>
+        /* --- STYLES CSS INTÉGRÉS --- */
+        html {
+            box-sizing: border-box;
+            text-rendering: optimizeLegibility;
+        }
+
+        *, *:before, *:after {
+            box-sizing: inherit;
+        }
+
+        body {
+            margin: 0;
+            background-color: #24283a;
+			background-position-x: center;
+			background-position-y: center;
+			background-repeat: initial;
+			background-attachment: fixed;
+			background-origin: initial;
+			background-clip: initial;
+			background-size: contain;
+            font-family: "Mountains of Christmas", "Lato", sans-serif;
+            color: #e2e8f0;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .-content {
+            text-align: center;
+            width: 95vw;
+			min-width: 450px;
+			max-width: 960px;
+            margin: 2px auto 0 auto;
+            line-height: 200%;
+            background: rgba(36, 40, 58, 0.9);
+            padding: 20px;
+            border-radius: 16px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+        }
+
+        .-content:hover {
+            background: rgba(36, 40, 58, 0.3);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+			backdrop-filter: none;
+            transition: all 0.3s ease;
+        }
+
+        /* Effet visuel quand on glisse un dossier/fichiers au-dessus de la boîte */
+		body.drag-active::before {
+			content: "📁 Déposez votre dossier ici";
+			position: fixed;
+			inset: 20px;
+			z-index: 99999;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			border: 4px dashed #2dd4bf;
+			border-radius: 20px;
+			background: rgba(13, 148, 136, 0.25);
+			color: white;
+			font-size: 28px;
+			font-weight: bold;
+			pointer-events: none;
+			transform: scale(1.01);
+			animation: dragPulse 1s infinite alternate;
+		}
+
+		@keyframes dragPulse {
+			from {
+				opacity: 0.65;
+			}
+
+			to {
+				opacity: 1;
+			}
+		}
+
+		/* ============================================================
+           LOADER DE CHARGEMENT
+           ============================================================ */
+        .loader-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(36, 40, 58, 0.9);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 999999;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+
+        .loader-overlay.cache {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 6px solid rgba(255, 255, 255, 0.15);
+            border-top-color: #0d9488; /* Rappel de ta couleur de bouton */
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        .loader-text {
+            color: #e2e8f0;
+            font-family: "Lato", sans-serif;
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+		.actions-mois, .actions-diapo, .actions-dossier {
+			display: flex;
+			gap: 8px;
+			justify-content: center;
+			align-items: center;
+			flex-wrap: wrap;
+			margin-bottom: 8px;
+		}
+
+		.actions-mois button, .actions-mois input, .actions-diapo button {
+			background:#0f766e;
+			font-size: 11px;
+			color:#fff;
+			border:none;
+			padding:6px 12px;
+			border-radius:6px;
+			cursor:pointer;
+		}
+
+        #btnDossier, #btnToggleOpacite, #btnToggleCalendar {
+            background-color: #0d9488;
+            color: #fff;
+            font-weight: bold;
+            padding: 12px 24px;
+            cursor: pointer;
+            border-radius: 8px;
+            border: 2px ridge #2dd4bf;
+            font-size: 18px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        #btnDossier:hover, #btnToggleOpacite:hover, #btnToggleCalendar:hover, .actions-mois button:hover, .actions-mois input:hover, .actions-diapo button:hover {
+            background-color: #14b8a6;
+            transform: translateY(-2px);
+        }
+
+		#btnToggleCalendar {
+            position: fixed;
+			padding: 5px 8px;
+			z-index: 5;
+            top: 5px;
+			right: 5px;
+			font-size: 15px;
+        }
+
+		#btnResetImages {
+			background-color: #b91c1c;
+			color: #fff;
+			border: 2px ridge #f87171;
+			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+			opacity: 0.45;
+		}
+
+		#btnResetImages:hover {
+			background-color: #dc2626;
+			transform: translateY(-2px);
+			opacity: 1;
+		}
+
+        .drop-zone-text {
+            font-size: 14px;
+            color: #94a3b8;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.3);
+        }
+
+        #infoStatut {
+			display: inline-block;
+            color: #cbd5e1;
+            font-family: "Lato", sans-serif;
+			padding: 5px 8px;
+			line-height: normal;
+			border-radius: 10px;
+			background: rgba(36, 40, 58, 0.6);
+			background-clip: padding-box;
+			margin-bottom: 8px;
+			margin-top: 0;
+        }
+
+		/* Quand le loader est visible, on fait remonter #infoStatut au tout premier plan */
+		#loaderOverlay:not(.cache) ~ .-content #infoStatut {
+			position: fixed;
+			top: 10vh;
+			left: 50%;
+			transform: translateX(-50%);
+			background: transparent;
+			z-index: 1000000;
+			color: #ffffff;
+			font-size: 18px;
+			font-weight: bold;
+			text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+			pointer-events: none;
+			width: 90%;
+			max-width: 600px;
+		}
+
+		#loaderOverlay:not(.cache) ~ .-content {
+			backdrop-filter: none;
+		}
+
+        /* Styles pour la grille du calendrier */
+        ul#adventDoors {
+            position: relative;
+            list-style: none;
+            padding: 20px;
+            margin: 0 auto;
+            display: grid;
+			align-items: center;
+            grid-template-columns: 50px repeat(7, 1fr);
+            gap: 12px;
+			background-position-x: center;
+			background-position-y: center;
+			background-repeat: initial;
+			background-attachment: scroll;
+			background-origin: initial;
+			background-clip: initial;
+            background-size: contain;
+            border-radius: 12px;
+			border: 20px ridge #0f766e;
+			box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(13, 148, 136, 0.3);
+        }
+
+		#adventDoors li.numero-semaine {
+			color: #2dd4bf;
+			font-weight: bold;
+			font-family: "Lato", sans-serif;
+			font-size: 16px;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			background-color: rgba(15, 23, 42, 0.4);
+			border: 2px rgba(45, 212, 191, 0.3) solid;
+			border-radius: 6px;
+			aspect-ratio: 1;
+			box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+		}
+
+        #adventDoors li.jour-semaine {
+            color: #ffffff;
+            font-weight: bold;
+            font-family: "Lato", sans-serif;
+            font-size: 16px;
+            padding: 8px 0;
+			border: 2px rgba(255, 255, 255, 0.4) solid;
+			background-color: rgba(15, 23, 42, 0.4);
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+			height: 40px;
+        }
+
+        #adventDoors li {
+            position: relative !important;
+            aspect-ratio: 1;
+            width: 100%;
+			transition: opacity 0.4s ease;
+        }
+
+		#adventDoors li:not(.jour-semaine, .numero-semaine) {
+			opacity: 0.7;
+		}
+
+        #adventDoors li:not(.jour-semaine, .numero-semaine):hover {
+			opacity: 1;
+        }
+
+		#adventDoors li:has(a.jour-actuel) {
+			opacity: 1;
+        }
+
+        #adventDoors li.case-vide {
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        #adventDoors li a {
+            position: absolute;
+            top: 0;
+            left: 0;
+            color: #fff;
+            width: 100%;
+            height: 100%;
+            font-size: 32px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-decoration: none;
+            border: 2px rgba(255, 255, 255, 0.4) solid;
+            border-radius: 6px;
+            background-color: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(2px);
+            cursor: pointer;
+            transition: all 400ms ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        #adventDoors li a.jour-actuel {
+            border-color: #28b96f;
+            background-color: rgba(21, 103, 57, 0.5);
+            box-shadow: 0 0 15px rgba(21, 103, 57, 0.6);
+            color: #28b96f;
+            font-weight: bold;
+        }
+
+		#adventDoors li a.disabled {
+			border-color: #f43f5e;
+            background-color: rgba(244, 63, 94, 0.5);
+            box-shadow: 0 0 15px rgba(244, 63, 94, 0.6);
+			cursor: not-allowed;
+            color: #f43f5e;
+		}
+
+		a.disabled img {
+			filter: blur(5px);
+		}
+
+		/* Jours fériés français (couleur violette) */
+		#adventDoors li a.jour-ferie {
+			border-color: #c084fc;
+			background-color: rgba(147, 51, 234, 0.45);
+			box-shadow: 0 0 15px rgba(147, 51, 234, 0.5);
+			color: #e9d5ff;
+			font-weight: bold;
+		}
+
+        #adventDoors li a:hover {
+            color: #fbbf24;
+            border-color: #fbbf24;
+            background-color: rgba(251, 191, 36, 0.3);
+            transform: translateY(-2px);
+        }
+
+        #adventDoors li a img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+            z-index: 1;
+        }
+
+        #adventDoors li a span {
+            z-index: 2;
+            position: absolute;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+			transition: all 0.3s ease;
+        }
+
+        #adventDoors li a:hover span {
+            top: 2px;
+            left: 2px;
+            transform: scale(0.5);
+        }
+
+        .-content h1 {
+			position: sticky;
+			top: 10px;
+			padding: 5px 8px;
+			border-radius: 10px;
+            font-size: 2.5rem;
+            color: #c084fc;
+			background: rgba(36, 40, 58, 0.6);
+			background-clip: padding-box;
+            text-shadow: 0 2px 10px rgb(48 12 54 / 50%);
+            display: table;
+            margin: 8px auto;
+        }
+
+        /* --- VISIONNEUSE PLEIN ÉCRAN & ZOOM / PAN --- */
+        .twAudessus {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(3, 7, 18, 0.85);
+			background-position-x: center;
+			background-position-y: center;
+			background-repeat: initial;
+			background-attachment: fixed;
+			background-origin: initial;
+			background-clip: initial;
+			background-size: contain;
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s ease-in-out;
+            overflow: hidden;
+        }
+
+        .twAudessus:target {
+            opacity: 1;
+            visibility: visible;
+			cursor: zoom-out;
+        }
+
+		.twAudessus:target .twImgWrapper:has(img.zoomed) {
+			width: 100%;
+			height: 100%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+
+        div.fermer, #modalZoom #btnDiaporama, #modalZoom #btnDiaporamaGlobal, .jourAffiche {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: inline-flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 60px;
+            width: 60px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            background-color: rgba(15, 23, 42, 0.6);
+            z-index: 100001;
+            transition: all 0.2s ease;
+			cursor: pointer;
+			line-height: 1.2;
+        }
+
+		#modalZoom #btnDiaporama, #modalZoom #btnDiaporamaGlobal {
+			color: #fff;
+			font-size: 24px;
+			box-shadow: none;
+		}
+
+		#modalZoom #btnDiaporama {
+			right: 90px;
+		}
+
+		#modalZoom #btnDiaporamaGlobal {
+			right: 160px;
+		}
+
+        div.fermer a {
+			color: white;
+            font-size: 24px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+
+        div.fermer:hover, #modalZoom #btnDiaporama:hover, #modalZoom #btnDiaporamaGlobal:hover, .jourAffiche:hover {
+            background-color: rgba(15, 23, 42, 0.9);
+            border-color: #fbbf24;
+            transform: scale(1.1);
+        }
+
+        div.fermer a:hover, #modalZoom #btnDiaporama:hover, #modalZoom #btnDiaporamaGlobal:hover, .jourAffiche:hover {
+            color: #fbbf24;
+        }
+
+        .twAudessus img.twImg {
+            width: auto;
+            height: auto;
+            max-width: 90vw;
+            max-height: 90vh;
+            object-fit: contain;
+            cursor: zoom-in;
+            user-select: none;
+            -webkit-user-drag: none;
+            transition: transform 0.05s ease-out;
+            border-radius: 8px;
+            border: 20px ridge darkslategray;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+			animation-timing-function: ease-in-out;
+			animation-fill-mode: forwards;
+        }
+
+		@keyframes diapoAnim {
+			0% {
+				opacity: 0;
+			}
+			100% {
+				opacity: 1;
+			}
+		}
+
+        .twAudessus img.twImg.diapo {
+            max-width: 98vw;
+            max-height: 98vh;
+            border-width: 4px;
+			pointer-events: none;
+			animation-timing-function: ease-in-out;
+			animation-fill-mode: both;
+			animation-iteration-count: 1;
+        }
+
+		@keyframes effetZoomIn {
+			0% { opacity: 0; transform: scale(0.8); }
+			10% { opacity: 1; transform: scale(1); }
+			90% { opacity: 1; transform: scale(1.05); }
+			100% { opacity: 0.1; transform: scale(1.1); }
+		}
+
+		@keyframes effetZoomOut {
+			0% { opacity: 0; transform: scale(1.2); }
+			10% { opacity: 1; transform: scale(1.05); }
+			90% { opacity: 1; transform: scale(1); }
+			100% { opacity: 0.1; transform: scale(0.95); }
+		}
+
+		@keyframes effetSlideUp {
+			0% { opacity: 0; transform: translateY(30px); }
+			10% { opacity: 1; transform: translateY(0); }
+			90% { opacity: 1; transform: translateY(0); }
+			100% { opacity: 0.1; transform: translateY(-30px); }
+		}
+
+		@keyframes effetSlideDown {
+			0% { opacity: 0; transform: translateY(-30px); }
+			10% { opacity: 1; transform: translateY(0); }
+			90% { opacity: 1; transform: translateY(0); }
+			100% { opacity: 0.1; transform: translateY(+30px); }
+		}
+
+		@keyframes effetSlideLeft {
+			0% { opacity: 0; transform: translateX(+30px); }
+			10% { opacity: 1; transform: translateX(0); }
+			90% { opacity: 1; transform: translateX(0); }
+			100% { opacity: 0.1; transform: translateX(-30px); }
+		}
+
+		@keyframes effetSlideRight {
+			0% { opacity: 0; transform: translateX(-30px); }
+			10% { opacity: 1; transform: translateX(0); }
+			90% { opacity: 1; transform: translateX(0); }
+			100% { opacity: 0.1; transform: translateX(+30px); }
+		}
+
+		@keyframes effetFade {
+			0% { opacity: 0; }
+			10% { opacity: 1; }
+			90% { opacity: 1; }
+			100% { opacity: 0.1; }
+		}
+
+		/* Apparition avec un léger flou */
+		@keyframes effetBlur {
+			0% {
+				opacity: 0;
+				filter: blur(15px);
+				transform: scale(1.05);
+			}
+			10% {
+				opacity: 1;
+				filter: blur(0);
+				transform: scale(1);
+			}
+			90% {
+				opacity: 1;
+			}
+			100% {
+				opacity: 0.1;
+			}
+		}
+
+
+		/* Apparition avec rotation */
+		@keyframes effetRotate {
+			0% {
+				opacity: 0;
+				transform: scale(0.85) rotate(-5deg);
+			}
+			10% {
+				opacity: 1;
+				transform: scale(1) rotate(0deg);
+			}
+			90% {
+				opacity: 1;
+				transform: scale(1.03) rotate(0deg);
+			}
+			100% {
+				opacity: 0.1;
+				transform: scale(1.05) rotate(3deg);
+			}
+		}
+
+
+		/* Apparition diagonale */
+		@keyframes effetDiagonal {
+			0% {
+				opacity: 0;
+				transform: translate(40px, 40px) scale(0.95);
+			}
+			10% {
+				opacity: 1;
+				transform: translate(0, 0) scale(1);
+			}
+			90% {
+				opacity: 1;
+			}
+			100% {
+				opacity: 0.1;
+				transform: translate(-40px, -40px) scale(1.02);
+			}
+		}
+
+
+		/* Apparition depuis le coin */
+		@keyframes effetCoin {
+			0% {
+				opacity: 0;
+				transform: translate(-40px, -40px) scale(0.9);
+			}
+			10% {
+				opacity: 1;
+				transform: translate(0, 0) scale(1);
+			}
+			90% {
+				opacity: 1;
+			}
+			100% {
+				opacity: 0.1;
+				transform: translate(40px, 40px) scale(1.05);
+			}
+		}
+
+
+		/* Effet "glissement + zoom" */
+		@keyframes effetGlide {
+			0% {
+				opacity: 0;
+				transform: translateX(50px) scale(1.1);
+			}
+			10% {
+				opacity: 1;
+				transform: translateX(0) scale(1);
+			}
+			90% {
+				opacity: 1;
+				transform: translateX(0) scale(1.03);
+			}
+			100% {
+				opacity: 0.1;
+				transform: translateX(-30px) scale(1.05);
+			}
+		}
+
+
+		/* Apparition avec perspective 3D */
+		@keyframes effetPerspective {
+			0% {
+				opacity: 0;
+				transform: perspective(800px) rotateY(-15deg) scale(0.95);
+			}
+			10% {
+				opacity: 1;
+				transform: perspective(800px) rotateY(0deg) scale(1);
+			}
+			90% {
+				opacity: 1;
+			}
+			100% {
+				opacity: 0.1;
+				transform: perspective(800px) rotateY(10deg) scale(1.02);
+			}
+		}
+
+
+		/* Apparition verticale avec compression */
+		@keyframes effetStretch {
+			0% {
+				opacity: 0;
+				transform: scaleY(0.7) scaleX(1.05);
+			}
+			10% {
+				opacity: 1;
+				transform: scaleY(1) scaleX(1);
+			}
+			90% {
+				opacity: 1;
+			}
+			100% {
+				opacity: 0.1;
+				transform: scaleY(1.05) scaleX(0.98);
+			}
+		}
+
+
+		/* Apparition horizontale */
+		@keyframes effetStretchHorizontal {
+			0% {
+				opacity: 0;
+				transform: scaleX(0.7) scaleY(1.05);
+			}
+			10% {
+				opacity: 1;
+				transform: scaleX(1) scaleY(1);
+			}
+			90% {
+				opacity: 1;
+			}
+			100% {
+				opacity: 0.1;
+				transform: scaleX(1.05) scaleY(0.98);
+			}
+		}
+
+
+		/* Apparition avec rotation 3D */
+		@keyframes effetFlip {
+			0% {
+				opacity: 0;
+				transform: perspective(800px) rotateX(-20deg) scale(0.95);
+			}
+			10% {
+				opacity: 1;
+				transform: perspective(800px) rotateX(0deg) scale(1);
+			}
+			90% {
+				opacity: 1;
+			}
+			100% {
+				opacity: 0.1;
+				transform: perspective(800px) rotateX(10deg) scale(1.02);
+			}
+		}
+
+
+		/* Effet très doux : zoom + déplacement */
+		@keyframes effetKenBurns {
+			0% {
+				opacity: 0;
+				transform: scale(1.02) translate(10px, 5px);
+			}
+			10% {
+				opacity: 1;
+				transform: scale(1.02) translate(0, 0);
+			}
+			90% {
+				opacity: 1;
+				transform: scale(1.08) translate(-10px, -5px);
+			}
+			100% {
+				opacity: 0.1;
+				transform: scale(1.1) translate(-15px, -8px);
+			}
+		}
+
+		@keyframes effetBounce {
+			0% {
+				opacity: 0;
+				transform: scale(0.3);
+			}
+			10% {
+				opacity: 1;
+				transform: scale(1.05);
+			}
+			15% {
+				transform: scale(0.95);
+			}
+			20% {
+				transform: scale(1);
+			}
+			90% {
+				opacity: 1;
+				transform: scale(1);
+			}
+			100% {
+				opacity: 0.1;
+				transform: scale(0.8);
+			}
+		}
+
+		@keyframes effetGlitch {
+			0% {
+				opacity: 0;
+				transform: translate(-10px, 5px);
+				filter: contrast(150%);
+			}
+			5% {
+				opacity: 1;
+				transform: translate(5px, -5px);
+			}
+			10% {
+				opacity: 1;
+				transform: translate(0, 0);
+				filter: contrast(100%);
+			}
+			90% {
+				opacity: 1;
+				transform: translate(0, 0);
+			}
+			95% {
+				transform: translate(-5px, 3px);
+				filter: contrast(130%);
+			}
+			100% {
+				opacity: 0.1;
+				transform: translate(10px, -5px);
+				filter: contrast(200%);
+			}
+		}
+
+		@keyframes effetPulse {
+			0% {
+				opacity: 0;
+				transform: scale(0.9);
+			}
+			10% {
+				opacity: 1;
+				transform: scale(1);
+			}
+			30% {
+				transform: scale(1.03);
+			}
+			50% {
+				transform: scale(1);
+			}
+			70% {
+				transform: scale(1.03);
+			}
+			90% {
+				opacity: 1;
+				transform: scale(1);
+			}
+			100% {
+				opacity: 0.1;
+				transform: scale(0.95);
+			}
+		}
+
+		@keyframes effetWave {
+			0% {
+				opacity: 0;
+				transform: rotate(-10deg) scale(0.9);
+			}
+			10% {
+				opacity: 1;
+				transform: rotate(3deg) scale(1);
+			}
+			40% {
+				transform: rotate(-2deg);
+			}
+			70% {
+				transform: rotate(1deg);
+			}
+			90% {
+				opacity: 1;
+				transform: rotate(0deg) scale(1);
+			}
+			100% {
+				opacity: 0.1;
+				transform: rotate(10deg) scale(1.05);
+			}
+		}
+
+		@keyframes effetFlash {
+			0% {
+				opacity: 0;
+				filter: brightness(2.5) saturate(50%);
+				transform: scale(1.1);
+			}
+			10% {
+				opacity: 1;
+				filter: brightness(1) saturate(100%);
+				transform: scale(1);
+			}
+			90% {
+				opacity: 1;
+				filter: brightness(1) saturate(100%);
+			}
+			100% {
+				opacity: 0.1;
+				filter: brightness(2) saturate(20%);
+				transform: scale(0.95);
+			}
+		}
+
+        .twAudessus img.twImg.zoomed {
+            max-width: none;
+            max-height: none;
+            cursor: n-resize;
+            border: none;
+            border-radius: 0;
+        }
+
+		/* ============================================================
+		   NAVIGATION ENTRE LES IMAGES
+		   ============================================================ */
+		.navImage {
+			position: fixed;
+			top: 50%;
+			transform: translateY(-50%);
+			width: 60px;
+			height: 100px;
+			border: 2px solid rgba(255,255,255,0.25);
+			border-radius: 12px;
+			background: rgba(15,23,42,0.65);
+			color: white;
+			font-size: 45px;
+			line-height: 1;
+			cursor: pointer;
+			z-index: 100002;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			transition: all 0.2s ease;
+		}
+
+		.navImage:hover {
+			background: rgba(15,23,42,0.9);
+			border-color: #fbbf24;
+			color: #fbbf24;
+			transform: translateY(-50%) scale(1.08);
+		}
+
+		.navGauche {
+			left: 25px;
+		}
+
+		.navDroite {
+			right: 25px;
+		}
+
+		.jourAffiche {
+			left: 20px;
+			font-size: 12px;
+			font-weight: bold;
+			cursor: default;
+		}
+
+		/* ============================================================
+		   INFORMATIONS DE L'IMAGE
+		   ============================================================ */
+		#infoImg {
+			position: fixed;
+			left: 50%;
+			transform: translateX(-50%);
+			padding: 8px 14px;
+			color: white;
+			background: rgba(0, 0, 0, 0.65);
+			border-radius: 8px;
+			font-size: 13px;
+			white-space: nowrap;
+			opacity: 0.75;
+			pointer-events: none;
+			transition: opacity 0.2s;
+			z-index: 100001;
+			top: 8px;
+		}
+
+		/* Caché lorsque l'image est zoomée */
+		.twAudessus:has(.zoomed) #infoImg {
+			opacity: 0;
+		}
+
+		.twAudessus:has(.diapo) #infoImg {
+			top: auto;
+			bottom: 8px;
+		}
+
+		.flecheInfo {
+			display: inline-block;
+			position: relative;
+			bottom: 1px;
+		}
+
+		/* ============================================================
+		   MINI-GALERIE : SÉLECTION MANUELLE DE L'IMAGE D'UN JOUR
+		   ============================================================ */
+		.galerie-overlay {
+			position: fixed;
+			inset: 0;
+			z-index: 100010;
+			background: rgba(3, 7, 18, 0.85);
+			backdrop-filter: blur(5px);
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			opacity: 0;
+			visibility: hidden;
+			transition: all 0.25s ease-in-out;
+		}
+
+		.galerie-overlay.visible {
+			opacity: 1;
+			visibility: visible;
+		}
+
+		.galerie-boite {
+			width: 80vw;
+			max-width: 80vw;
+			max-height: 90vh;
+			background: rgba(15, 23, 42, 0.95);
+			border: 2px ridge #2dd4bf;
+			border-radius: 14px;
+			padding: 15px;
+			display: flex;
+			flex-direction: column;
+			gap: 10px;
+			overflow: hidden;
+			box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+		}
+
+		.galerie-entete {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			gap: 10px;
+		}
+
+		.galerie-entete h2 {
+			margin: 0;
+			font-size: 1.3rem;
+			color: #c084fc;
+			font-family: "Lato", sans-serif;
+			text-align: left;
+		}
+
+		#btnGaleriePleinEcran {
+			background: #0f766e;
+			color: #fff;
+			border: none;
+			padding: 6px 12px;
+			border-radius: 6px;
+			cursor: pointer;
+			font-size: 12px;
+			margin-left: auto;
+		}
+
+		#btnGaleriePleinEcran:hover {
+			background: #14b8a6;
+		}
+
+		#galerieFermer {
+			background: rgba(15, 23, 42, 0.6);
+			color: #fff;
+			border: 2px solid rgba(255, 255, 255, 0.2);
+			border-radius: 50%;
+			width: 40px;
+			height: 40px;
+			cursor: pointer;
+			font-size: 18px;
+			flex: none;
+		}
+
+		#galerieFermer:hover {
+			color: #fbbf24;
+			border-color: #fbbf24;
+			transform: scale(1.08);
+		}
+
+		#galerieInfo {
+			margin: 0;
+			font-size: 13px;
+			color: #94a3b8;
+			font-family: "Lato", sans-serif;
+			text-align: left;
+		}
+
+		.galerie-grille {
+			overflow-y: auto;
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+			gap: 8px;
+			padding: 4px;
+		}
+
+		.galerie-item {
+			position: relative;
+			aspect-ratio: 1;
+			border: 2px solid rgba(255, 255, 255, 0.25);
+			border-radius: 8px;
+			cursor: pointer;
+			padding: 0;
+			background-color: rgba(35, 23, 42, 0.65);
+			transition: all 0.2s ease;
+		}
+
+		.galerie-item img {
+			width: 100%;
+			height: 100%;
+			object-fit: contain;
+			display: block;
+		}
+
+		.galerie-item:hover {
+			border-color: #fbbf24;
+			transform: translateY(-2px);
+		}
+
+		.galerie-item.selectionne {
+			border-color: #28b96f;
+			box-shadow: 0 0 12px rgba(21, 103, 57, 0.6);
+			background-color: rgba(21, 103, 57, 0.5);
+		}
+
+		.galerie-item.selectionne::after {
+			content: "✓";
+			position: absolute;
+			top: 2px;
+			right: 5px;
+			color: #28b96f;
+			font-weight: bold;
+			font-size: 18px;
+			text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+		}
+
+        /* Bouton zoom sur les vignettes */
+        .galerie-zoom {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            cursor: zoom-in;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+
+        .galerie-zoom:hover {
+            background: #0f766e;
+            border-color: #fbbf24;
+        }
+
+        /* Aperçu agrandi */
+        .galerie-apercu {
+            position: fixed;
+            inset: 0;
+            z-index: 100020;
+            background: rgba(3, 7, 18, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.25s ease-in-out;
+        }
+
+        .galerie-apercu.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .galerie-apercu img {
+            max-width: 90vw;
+            max-height: 75vh;
+            object-fit: contain;
+            border-radius: 8px;
+            border: 4px ridge #0f766e;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+        }
+
+        .galerie-apercu-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .galerie-apercu-actions button {
+            background: #0f766e;
+            color: #fff;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .galerie-apercu-actions button:hover {
+            background: #14b8a6;
+        }
+
+        .galerie-apercu-actions .apercu-choisir {
+            background: #15803d;
+        }
+
+        .galerie-apercu-actions .apercu-choisir:hover {
+            background: #16a34a;
+        }
+
+		/* ============================================================
+		   SCROLLBARS EN MODE SOMBRE
+		   ============================================================ */
+		/* Firefox (rendu simple, global) */
+		* {
+			scrollbar-width: thin;
+			scrollbar-color: #334155 #1a1f2e;
+		}
+
+		/* Chrome, Edge, Safari (rendu détaillé) */
+		::-webkit-scrollbar {
+			width: 12px;
+			height: 12px;
+		}
+
+		::-webkit-scrollbar-track {
+			background: #1a1f2e;
+		}
+
+		::-webkit-scrollbar-thumb {
+			background: #334155;
+			border: 2px solid #1a1f2e;
+			border-radius: 10px;
+		}
+
+		::-webkit-scrollbar-thumb:hover {
+			background: #0d9488;
+		}
+
+		::-webkit-scrollbar-thumb:active {
+			background: #14b8a6;
+		}
+
+		::-webkit-scrollbar-corner {
+			background: #1a1f2e;
+		}
+
+		/* ============================================================
+		   SLIDER VERTICAL DE CONTRÔLE DE LA VITESSE DU DIAPORAMA
+		   ============================================================ */
+		.diapo-vitesse-wrapper {
+			position: fixed;
+			bottom: 8px;
+			right: 20px;
+			display: none;
+			flex-direction: column;
+			align-items: center;
+			background: rgba(15, 23, 42, 0.75);
+			backdrop-filter: blur(5px);
+			border: 2px solid rgba(255, 255, 255, 0.2);
+			border-radius: 12px;
+			padding: 12px 8px;
+			z-index: 100005;
+			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+			transition: all 0.3s ease;
+			cursor: n-resize;
+		}
+
+		/* Affiché uniquement pendant le diaporama */
+		.twAudessus:has(.diapo) .diapo-vitesse-wrapper {
+			display: flex;
+		}
+
+		.diapo-vitesse-wrapper:hover {
+			border-color: #fbbf24;
+			background: rgba(15, 23, 42, 0.9);
+		}
+
+		.diapo-vitesse-label {
+			font-size: 10px;
+			color: #cbd5e1;
+			margin-bottom: 8px;
+			font-family: "Lato", sans-serif;
+			font-weight: bold;
+			text-align: center;
+		}
+
+		/* Curseur vertical */
+		input[type="range"].slider-vertical {
+			writing-mode: vertical-lr;
+			direction: rtl;
+			width: 8px;
+			height: 110px;
+			background: rgba(255, 255, 255, 0.15);
+			border-radius: 4px;
+			outline: none;
+			cursor: pointer;
+		}
+
+		input[type="range"].slider-vertical::-webkit-slider-thumb {
+			appearance: none;
+			-webkit-appearance: none;
+			width: 16px;
+			height: 16px;
+			border-radius: 50%;
+			background: #0d9488;
+			border: 2px ridge #2dd4bf;
+			cursor: pointer;
+			box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+			transition: transform 0.2s ease, background-color 0.2s ease;
+		}
+
+		input[type="range"].slider-vertical::-webkit-slider-thumb:hover {
+			background: #14b8a6;
+			transform: scale(1.2);
+		}
+
+		.diapo-vitesse-valeur {
+			font-size: 11px;
+			color: #2dd4bf;
+			margin-top: 8px;
+			font-family: "Lato", sans-serif;
+			font-weight: bold;
+		}
+
+		/* Bouton ⌨ discret d'affichage des raccourcis */
+		.raccourcis-bouton {
+			position: fixed;
+			left: 20px;
+			bottom: 8px;
+			display: none;
+			align-items: center;
+			justify-content: center;
+			width: 42px;
+			height: 42px;
+			border-radius: 50%;
+			background: rgba(15, 23, 42, 0.75);
+			backdrop-filter: blur(5px);
+			border: 2px solid rgba(255, 255, 255, 0.2);
+			color: #e2e8f0;
+			font-size: 18px;
+			cursor: pointer;
+			z-index: 100006;
+			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+			transition: all 0.3s ease;
+		}
+
+		/* Visible dès que la visionneuse est ouverte */
+		.twAudessus:target .raccourcis-bouton {
+			display: flex;
+		}
+
+		/* Visible quand la mini-galerie est ouverte */
+		.galerie-overlay .raccourcis-bouton {
+			display: flex;
+		}
+
+		/* Visible quand l'aperçu d'une vignette est ouvert */
+		.galerie-apercu.visible .raccourcis-bouton {
+			display: flex;
+		}
+
+		.raccourcis-bouton:hover {
+			border-color: #fbbf24;
+			background: rgba(15, 23, 42, 0.9);
+		}
+
+		/* Panneau des raccourcis clavier (partagé visionneuse / galerie) */
+		.panneau-raccourcis {
+			position: fixed;
+			left: 20px;
+			bottom: 60px;
+			display: none;
+			flex-direction: column;
+			gap: 6px;
+			background: rgba(15, 23, 42, 0.85);
+			backdrop-filter: blur(5px);
+			border: 2px solid rgba(255, 255, 255, 0.2);
+			border-radius: 12px;
+			padding: 12px 16px;
+			z-index: 100006;
+			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+			color: #e2e8f0;
+			font-size: 13px;
+			white-space: nowrap;
+		}
+
+		.panneau-raccourcis.visible {
+			display: flex;
+		}
+
+		/* Lignes contextuelles : n'apparaissent qu'en mode zoom / diaporama */
+		.raccourcis-ligne.raccourci-zoom,
+		.raccourcis-ligne.raccourci-diapo {
+			display: none;
+		}
+
+		.twAudessus:has(.zoomed) .raccourcis-ligne.raccourci-zoom {
+			display: flex;
+		}
+
+		.twAudessus:has(.diapo) .raccourcis-ligne.raccourci-diapo {
+			display: flex;
+		}
+
+		.raccourcis-titre {
+			font-size: 11px;
+			font-weight: bold;
+			color: #cbd5e1;
+			margin-bottom: 4px;
+			font-family: "Lato", sans-serif;
+		}
+
+		.raccourcis-ligne {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+		}
+
+		.touche {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			min-width: 24px;
+			height: 24px;
+			padding: 0 6px;
+			border: 1px solid rgba(255, 255, 255, 0.35);
+			border-radius: 6px;
+			background: rgba(255, 255, 255, 0.1);
+			font-size: 12px;
+			font-family: monospace;
+			color: white;
+		}
+
+		/* ============================================================
+		   NOTIFICATIONS
+		   ============================================================ */
+
+		#toastContainer {
+			position: fixed;
+			right: 20px;
+			bottom: 20px;
+			z-index: 2000000;
+			display: flex;
+			flex-direction: column;
+			align-items: flex-end;
+			gap: 10px;
+			pointer-events: none;
+		}
+
+		.toast {
+			max-width: min(420px, calc(100vw - 40px));
+			padding: 12px 16px;
+			border-radius: 10px;
+			color: white;
+			background: rgba(15, 23, 42, 0.95);
+			border: 1px solid rgba(255,255,255,0.2);
+			box-shadow: 0 8px 25px rgba(0,0,0,0.35);
+			font-size: 14px;
+			animation: toastEntree 0.25s ease-out;
+		}
+
+		.toast.success { border-color: #22c55e; }
+		.toast.error   { border-color: #ef4444; }
+		.toast.warning { border-color: #f59e0b; }
+		.toast.info    { border-color: #38bdf8; }
+
+		.toast.sortie {
+			animation: toastSortie 0.25s ease-in forwards;
+		}
+
+		@keyframes toastEntree {
+			from {
+				opacity: 0;
+				transform: translateX(30px);
+			}
+			to {
+				opacity: 1;
+				transform: translateX(0);
+			}
+		}
+
+		@keyframes toastSortie {
+			from {
+				opacity: 1;
+				transform: translateX(0);
+			}
+			to {
+				opacity: 0;
+				transform: translateX(30px);
+			}
+		}
+
+
+		/* ============================================================
+		   CONFIRMATION
+		   ============================================================ */
+
+		.confirm-overlay {
+			position: fixed;
+			inset: 0;
+			z-index: 200001;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: rgba(3, 7, 18, 0.7);
+			backdrop-filter: blur(4px);
+		}
+
+		.confirm-overlay[hidden] {
+			display: none;
+		}
+
+		.confirm-boite {
+			width: min(420px, calc(100vw - 40px));
+			padding: 20px;
+			border-radius: 14px;
+			background: rgba(15, 23, 42, 0.98);
+			border: 2px ridge #fbbf24;
+			box-shadow: 0 15px 50px rgba(0,0,0,0.6);
+		}
+
+		.confirm-titre {
+			margin-bottom: 12px;
+			color: #fbbf24;
+			font-size: 18px;
+			font-weight: bold;
+		}
+
+		.confirm-message {
+			color: white;
+			line-height: 1.5;
+			margin-bottom: 20px;
+		}
+
+		.confirm-actions {
+			display: flex;
+			justify-content: flex-end;
+			gap: 10px;
+		}
+
+		.confirm-actions button {
+			padding: 8px 16px;
+			border-radius: 8px;
+			border: 1px solid rgba(255,255,255,0.25);
+			cursor: pointer;
+			transition: all 0.3s ease;
+		}
+
+		#confirmAnnuler {
+			background: rgba(100,116,139,0.4);
+			color: white;
+		}
+
+		#confirmValider {
+			background: rgba(185,28,28,0.8);
+			color: white;
+		}
+
+		#confirmAnnuler:hover {
+			background: rgba(148, 163, 184, 0.4);
+			border-color: rgba(148, 163, 184, 0.6);
+			transform: translateY(-2px);
+		}
+
+		#confirmValider:hover {
+			background: #dc2626;
+			box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
+			transform: translateY(-2px);
+		}
+
+		.alerte-navigateur {
+			position: fixed;
+			top: 15px;
+			left: 50%;
+			transform: translateX(-50%);
+			z-index: 300000;
+			width: min(600px, calc(100vw - 30px));
+			padding: 14px 18px;
+			border: 2px solid #f59e0b;
+			border-radius: 10px;
+			background: rgba(60, 35, 0, 0.95);
+			color: #fff;
+			text-align: center;
+			box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+		}
+
+		.alerte-navigateur[hidden] {
+			display: none;
+		}
+
+		.alerte-navigateur button {
+			display: block;
+			margin: 12px auto 0;
+			padding: 8px 18px;
+			border: 0;
+			border-radius: 6px;
+			background: #f59e0b;
+			color: #1f2937;
+			font-weight: 600;
+			cursor: pointer;
+			transition: all 0.3s ease;
+		}
+
+		.alerte-navigateur button:hover {
+			background: #fbbf24;
+			transform: translateY(-2px);
+		}
+
+		/* ============================================================
+		   MOBILE
+		   ============================================================ */
+		@media screen and (max-width: 800px) {
+			#btnDossier, #btnToggleOpacite, #btnToggleCalendar {
+				padding: 5px;
+				font-size: 11px;
+			}
+
+			.actions-mois button, .actions-mois input, .actions-diapo button {
+				font-size: 9px;
+				padding:5px;
+			}
+
+			.drop-zone-text {
+				font-size: 10px;
+				padding: 5px;
+			}
+
+			.-content {
+				line-height: 150%;
+			}
+
+			.-content h1 {
+				font-size: 1.5rem;
+				margin: 3px auto;
+			}
+
+			#infoStatut {
+				padding: 5px;
+				font-size: 12px;
+			}
+
+			ul#adventDoors {
+				gap: 5px;
+				padding: 5px;
+				grid-template-columns: 30px repeat(7, 1fr);
+			}
+
+			#adventDoors li.jour-semaine {
+				font-size: 10px;
+				padding: 5px 0;
+			}
+
+			#adventDoors li.numero-semaine {
+				font-size: 10px;
+			}
+
+			#adventDoors li a {
+				font-size: 20px;
+			}
+
+			.navImage {
+				width: 45px;
+				height: 75px;
+				font-size: 32px;
+			}
+
+			.navGauche {
+				left: 8px;
+			}
+
+			.navDroite {
+				right: 8px;
+			}
+
+			.jourAffiche, #modalZoom #btnDiaporama, #modalZoom #btnDiaporamaGlobal, div.fermer {
+				width: 45px;
+				height: 45px;
+				top: 8px;
+			}
+
+			.jourAffiche {
+				left: 8px;
+				font-size: 10px;
+			}
+
+			div.fermer {
+				right: 8px;
+			}
+
+			.diapo-vitesse-wrapper {
+				right: 8px;
+				padding: 5px;
+			}
+
+			.diapo-vitesse-label {
+				margin-bottom: 3px;
+			}
+
+			input[type="range"].slider-vertical {
+				width: 5px;
+				height: 80px;
+			}
+
+			input[type="range"].slider-vertical::-webkit-slider-thumb {
+				width: 10px;
+				height: 10px;
+			}
+
+			.diapo-vitesse-valeur {
+				font-size: 10px;
+				margin-top: 3px;
+			}
+
+			.raccourcis-bouton {
+				left: 8px;
+				width: 36px;
+				height: 36px;
+				font-size: 15px;
+			}
+
+			.panneau-raccourcis {
+				left: 8px;
+				bottom: 52px;
+				font-size: 11px;
+				padding: 8px 12px;
+				gap: 4px;
+			}
+
+			.touche {
+				min-width: 20px;
+				height: 20px;
+				font-size: 10px;
+			}
+
+			#modalZoom #btnDiaporama {
+				right: 60px;
+			}
+
+			#modalZoom #btnDiaporamaGlobal {
+				right: 112px;
+			}
+
+			div.fermer a, #modalZoom #btnDiaporama, #modalZoom #btnDiaporamaGlobal {
+				font-size: 18px;
+			}
+
+			#infoImg {
+				font-size: 10px;
+				padding: 6px 8px;
+			}
+		}
+
+		/* ============================================================
+		   IMPRESSION
+		   ============================================================ */
+		@media print {
+			@page {
+				size: A5 portrait;
+				margin: 0mm;
+			}
+
+			* {
+				-webkit-print-color-adjust: exact !important;
+				print-color-adjust: exact !important;
+			}
+
+			body {
+				min-height: 100dvh;
+				display: flex !important;
+				align-items: center !important;
+				justify-content: center !important;
+				padding: 0 !important;
+				overflow: hidden !important;
+			}
+
+			.-content {
+				margin: 0 !important;
+				padding: 0px !important;
+				background: none !important;
+				backdrop-filter: none !important;
+				box-shadow: none !important;
+			}
+
+			.-content h1 {
+				margin-top: 3px !important;
+				background-color: rgba(15, 23, 42, 0.4) !important;
+			}
+
+			#adventDoors li a img,
+			#modalZoom,
+			#galerieJour,
+			#galerieApercu,
+			#loaderOverlay,
+			#btnToggleCalendar,
+			.menu,
+			#toastContainer {
+				display: none !important;
+			}
+
+			a.disabled img {
+				filter: none !important;
+			}
+
+			ul#adventDoors {
+				grid-template-columns: clamp(30px, 2vw, 50px) repeat(7, 1fr);
+			}
+
+			#adventDoors li a {
+				background-position-x: center !important;
+				background-position-y: center !important;
+				background-repeat: initial !important;
+				background-attachment: scroll !important;
+				background-origin: initial !important;
+				background-clip: initial !important;
+				background-size: contain !important;
+			}
+
+			#adventDoors li.numero-semaine {
+				font-size: clamp(12px, 2vw, 24px) !important;
+				color: #2dd4bf !important;
+			}
+
+			#adventDoors li.jour-semaine{
+				font-size: clamp(12px, 2vw, 24px) !important;
+				color: #fbbf24 !important;
+				border-color: #fbbf24 !important;
+			}
+
+			#adventDoors li a,
+			#adventDoors li a.jour-actuel,
+			#adventDoors li a.disabled {
+				color: #fbbf24 !important;
+				border-color: #fbbf24 !important;
+				background-color: rgba(251, 191, 36, 0.3) !important;
+				font-weight: normal !important;
+				font-size: clamp(12px, 3vw, 24px) !important;
+				box-shadow: 0 4px 6px rgba(0,0,0,0.2) !important;
+			}
+
+			#adventDoors li a.jour-ferie {
+				color: #c084fc !important;
+				border-color: #c084fc !important;
+				background-color: rgba(147, 51, 234, 0.35) !important;
+				font-weight: bold !important;
+			}
+
+			#adventDoors li a span {
+				top: 2px !important;
+				left: 2px !important;
+				width: 34px !important;
+				height: 34px !important;
+				background-color: rgba(15, 23, 42, 0.4) !important;
+				border-radius: 50% !important;
+				display: flex !important;
+				align-items: center !important;
+				justify-content: center !important;
+				right: auto !important;
+				bottom: auto !important;
+			}
+
+			#adventDoors li {
+				opacity: 1 !important;
+			}
+		}
+
+		/* ============================================================
+		   IMAGE
+		   ============================================================ */
+		#calendrier {
+			--largeur-grille-export: 1120px;
+			position: relative;
+			width: 1920px !important;
+			height: 1080px !important;
+			overflow: hidden !important;
+			margin: 0 !important;
+			display: flex !important;
+			align-items: center !important;
+			justify-content: center !important;
+			padding: 5px !important;
+			pointer-events: none !important;
+		}
+
+		#calendrier * {
+			cursor: none !important;
+		}
+
+		#calendrier .-content {
+			max-width: 1920px !important;
+			width: var(--largeur-grille-export) !important;
+			margin: 0 !important;
+			padding: 0px !important;
+			background: none !important;
+			backdrop-filter: none !important;
+			box-shadow: none !important;
+		}
+
+		#calendrier .-content h1 {
+			margin-top: 3px !important;
+			background-color: rgba(15, 23, 42, 0.4) !important;
+		}
+
+		#calendrier #adventDoors li a img,
+		#calendrier #modalZoom,
+		#calendrier #galerieJour,
+		#calendrier #galerieApercu,
+		#calendrier #loaderOverlay,
+		#calendrier #btnToggleCalendar,
+		#calendrier .menu,
+		#calendrier #toastContainer	{
+			display: none !important;
+		}
+
+		#calendrier a.disabled img {
+			filter: none !important;
+		}
+
+		#calendrier #adventDoors li a {
+			background-position-x: center !important;
+			background-position-y: center !important;
+			background-repeat: initial !important;
+			background-attachment: scroll !important;
+			background-origin: initial !important;
+			background-clip: initial !important;
+			background-size: contain !important;
+		}
+
+		#calendrier #adventDoors li.jour-semaine{
+			font-size: 20px !important;
+			color: #fbbf24 !important;
+			border-color: #fbbf24 !important;
+			height: 40px !important;
+		}
+
+		#calendrier #adventDoors li.numero-semaine{
+			font-size: 20px !important;
+			color: #2dd4bf !important;
+		}
+
+		#calendrier #adventDoors li a,
+		#calendrier #adventDoors li a.jour-actuel,
+		#calendrier #adventDoors li a.disabled {
+			color: #fbbf24 !important;
+			border-color: #fbbf24 !important;
+			background-color: rgba(251, 191, 36, 0.3) !important;
+			font-weight: normal !important;
+			font-size: 25px !important;
+			box-shadow: 0 4px 6px rgba(0,0,0,0.2) !important;
+		}
+
+		#calendrier #adventDoors li a.jour-ferie {
+			color: #c084fc !important;
+			border-color: #c084fc !important;
+			background-color: rgba(147, 51, 234, 0.35) !important;
+			font-weight: bold !important;
+		}
+
+		#calendrier #adventDoors li a span {
+			top: 2px !important;
+			left: 2px !important;
+			width: 34px !important;
+			height: 34px !important;
+			background-color: rgba(15, 23, 42, 0.4) !important;
+			border-radius: 50% !important;
+			display: flex !important;
+			align-items: center !important;
+			justify-content: center !important;
+			right: auto !important;
+			bottom: auto !important;
+		}
+
+		#calendrier #adventDoors li {
+			opacity: 1 !important;
+		}
+
+		#calendrier #one, #calendrier #two {
+			display: flex;
+			position: absolute;
+			bottom: 0;
+			max-width: calc((1920px - var(--largeur-grille-export)) / 2);
+			max-height: calc(100vh - 200px);
+		}
+
+		#calendrier #three {
+			display: flex;
+			position: absolute;
+			top: 1px;
+			left: 1px;
+			max-width: calc((1920px - var(--largeur-grille-export)) / 2);
+			max-height: 200px;
+			border-radius: 10px;
+			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+		}
+
+		#one, #two, #three {
+			display: none;
+		}
+
+		#one {
+			left: 0px;
+		}
+
+		#two {
+			right: 0px;
+		}
+    </style>
+</head>
+<body>
+	<div id="alerteNavigateur" class="alerte-navigateur" hidden>
+		⚠️ <strong>Navigateur non compatible</strong><br>
+		Cette application nécessite un navigateur basé sur Chromium
+		(Google Chrome, Microsoft Edge, Brave, Opéra etc.).
+
+		<button id="fermerAlerteNavigateur" type="button">
+			J’ai compris
+		</button>
+	</div>
+	<!-- Loader affiché par défaut au démarrage -->
+    <div id="loaderOverlay" class="loader-overlay">
+        <div class="spinner"></div>
+        <div class="loader-text">Chargement de votre calendrier...</div>
+    </div>
+	<button id="btnToggleCalendar">👁️ Masquer le calendrier</button>
+	<img id="one" loading="lazy">
+	<img id="two" loading="lazy">
+	<img id="three" loading="lazy">
+		<div class="-content">
+			<h1 id="titreCalendrier">Mon Calendrier</h1>
+			<div class="menu">
+				<!-- Nouveaux boutons de navigation -->
+				<div class="actions-mois">
+					<button id="btnAnneePrec"><span class="flecheInfo">«</span> Année préc.</button>
+					<button id="btnMoisPrec"><span class="flecheInfo">‹</span> Mois préc.</button>
+					<input type="month" id="selecteurMoisAnnee" title="Choisir un mois et une année">
+					<button id="btnNow"><span class="flecheInfo">📅</span> Aujourd'hui</button>
+					<button id="btnMoisSuiv">Mois suiv. <span class="flecheInfo">›</span></button>
+					<button id="btnAnneeSuiv">Année suiv. <span class="flecheInfo">»</span></button>
+				</div>
+				<div class="actions-diapo" id="act-diapo">
+					<button id="btnDiaporama" aria-label="&#9658;" title="Lancer le diaporama du mois">&#9658; Diaporama du mois</button>
+					<button id="btnDiaporamaGlobal" aria-label="&#9658;" title="Lancer le diaporama global">&#9658; Diaporama Global</button>
+					<button id="btnResetImages" title="Remplacer les images du calendrier et réinitialiser le calendrier">🗑️ Réinitialiser les images</button>
+				</div>
+				<div class="actions-diapo">
+					<button id="Print" aria-label="Imprimer" title="Imprimer le mois">&#128424; Imprimer</button>
+					<button id="SaveImage" aria-label="Enregistrer en tant qu'image" title="Enregistrer en tant qu'image">&#128444; Sauvegarder en tant qu'image</button>
+					<button id="SaveAnnee" aria-label="Enregistrer toute l'année en images" title="Générer une archive ZIP contenant les 12 mois de l'année">&#128248; Sauvegarder toute l'année</button>
+				</div>
+				<div class="actions-dossier">
+					<button id="btnDossier">📁 Sélectionner le dossier</button>
+					<span class="drop-zone-text">ou glissez-déposez votre dossier d'images ici</span>
+					<button id="btnToggleOpacite">👁️ Masquer les jours</button>
+				</div>
+				<p id="infoStatut">Veuillez sélectionner ou glisser votre dossier d'images pour charger ou générer le mois.</p>
+			</div>
+
+        <!-- Grille des portes (7 colonnes : Lundi au Dimanche) -->
+        <ul id="adventDoors"></ul>
+    </div>
+
+    <!-- Fenêtre modale de zoom avec le système Pan / Grab -->
+	<div id="modalZoom" class="twAudessus" role="dialog" aria-modal="true" aria-label="Visionneuse d'image"title="Fermer">
+		<div id="infoImg"></div>
+		<!-- Image précédente -->
+		<button id="btnImagePrecedente" title="Image précédente" class="navImage navGauche" aria-label="Image précédente">
+			&#10094;
+		</button>
+
+		<!-- Image suivante -->
+		<button id="btnImageSuivante" title="Image suivante" class="navImage navDroite" aria-label="Image suivante">
+			&#10095;
+		</button>
+
+		<!-- Fermer -->
+		<div class="fermer" title="Fermer" aria-label="Fermer">
+			<a href="#" id="btnFermerZoom">✕</a>
+		</div>
+
+		<div class="jourAffiche" id="jourAffiche">
+			<span id="numeroJourImage">Jour 1</span>
+		</div>
+
+		<!-- Image -->
+		<div class="twImgWrapper" title="Fermer zoom">
+			<img id="imagePleinEcran" class="twImg" alt="Zoom image" style="display:none;">
+		</div>
+
+		<!-- Slider de vitesse du diaporama -->
+		<div class="diapo-vitesse-wrapper" title="Vitesse du diaporama">
+			<span class="diapo-vitesse-label">Vitesse</span>
+			<input type="range" id="rangeVitesseDiapo" class="slider-vertical" min="1" max="120" step="0.5" value="3.5">
+			<span id="valeurVitesseDiapo" class="diapo-vitesse-valeur">3.5s</span>
+		</div>
+
+		<!-- Panneau des raccourcis clavier (bouton ⌨ ou touche ?) -->
+		<div id="panneauRaccourcis" class="panneau-raccourcis">
+			<div class="raccourcis-titre">⌨ Raccourcis clavier</div>
+			<div class="raccourcis-ligne raccourci-zoom"><span class="touche">Molette</span> Zoomer / dézoomer</div>
+			<div class="raccourcis-ligne raccourci-zoom"><span class="touche">Clic + glisser</span> Déplacer l'image</div>
+			<div class="raccourcis-ligne raccourci-zoom"><span class="touche">Double clic</span> Fermer le zoom</div>
+			<div class="raccourcis-ligne"><span class="touche">←</span><span class="touche">→</span> Image précédente / suivante</div>
+			<div class="raccourcis-ligne raccourci-diapo"><span class="touche">Espace</span> Pause / reprise du diaporama</div>
+			<div class="raccourcis-ligne raccourci-diapo"><span class="touche">+</span><span class="touche">−</span> Vitesse du diaporama</div>
+			<div class="raccourcis-ligne"><span class="touche">H</span> Afficher / masquer ce panneau</div>
+			<div class="raccourcis-ligne"><span class="touche">Échap</span> Fermer</div>
+		</div>
+
+		<!-- Bouton discret d'affichage des raccourcis -->
+		<button id="btnRaccourcis" class="raccourcis-bouton" title="Raccourcis clavier" aria-label="Raccourcis clavier">⌨</button>
+
+	</div>
+
+	<!-- Mini-galerie de sélection d'image pour un jour -->
+	<div id="galerieJour" class="galerie-overlay" title="Fermer la galerie">
+		<div class="galerie-boite" title="">
+			<div class="galerie-entete">
+				<h2 id="galerieTitre">Choisir l'image</h2>
+				<button id="btnGaleriePleinEcran" type="button" title="Afficher l'image du jour en plein écran">👁️ Plein écran</button>
+				<button id="galerieFermer" type="button" title="Fermer la galerie">✕</button>
+			</div>
+			<p id="galerieInfo"></p>
+			<div id="galerieGrille" class="galerie-grille"></div>
+		</div>
+
+		<!-- Panneau des raccourcis clavier de la galerie -->
+		<div id="panneauRaccourcisGalerie" class="panneau-raccourcis">
+			<div class="raccourcis-titre">⌨ Raccourcis clavier</div>
+			<div class="raccourcis-ligne"><span class="touche">Échap</span> Fermer l'aperçu, puis la galerie</div>
+			<div class="raccourcis-ligne"><span class="touche">H</span> Afficher / masquer ce panneau</div>
+		</div>
+
+		<!-- Bouton discret d'affichage des raccourcis -->
+		<button id="btnRaccourcisGalerie" class="raccourcis-bouton" title="Raccourcis clavier" aria-label="Raccourcis clavier">⌨</button>
+	</div>
+	    <!-- Aperçu agrandi d'une image de la galerie -->
+    <div id="galerieApercu" class="galerie-apercu" title="Fermer l'aperçu">
+        <img id="apercuImage" alt="Aperçu" title="">
+        <div class="galerie-apercu-actions" title="">
+            <button id="apercuChoisir" type="button" class="apercu-choisir" title="Choisir cette image">✅ Choisir cette image</button>
+            <button id="apercuFermer" type="button" title="Fermer l'aperçu">✕ Fermer</button>
+        </div>
+
+        <!-- Panneau des raccourcis clavier de l'aperçu -->
+        <div id="panneauRaccourcisApercu" class="panneau-raccourcis">
+            <div class="raccourcis-titre">⌨ Raccourcis clavier</div>
+            <div class="raccourcis-ligne"><span class="touche">Échap</span> Fermer l'aperçu</div>
+            <div class="raccourcis-ligne"><span class="touche">H</span> Afficher / masquer ce panneau</div>
+        </div>
+
+        <!-- Bouton discret d'affichage des raccourcis -->
+        <button id="btnRaccourcisApercu" class="raccourcis-bouton" title="Raccourcis clavier" aria-label="Raccourcis clavier">⌨</button>
+    </div>
+
+	<!-- Notifications -->
+	<div id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+	<!-- Confirmation personnalisée -->
+	<div id="confirmOverlay" class="confirm-overlay" hidden>
+		<div class="confirm-boite" role="dialog" aria-modal="true" aria-labelledby="confirmTitre">
+			<div id="confirmTitre" class="confirm-titre">Confirmation</div>
+			<div id="confirmMessage" class="confirm-message"></div>
+			<div class="confirm-actions">
+				<button id="confirmAnnuler" type="button">Non</button>
+				<button id="confirmValider" type="button">Oui</button>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		window.location.hash = "";
+
+		const alerteNavigateur = document.getElementById("alerteNavigateur");
+		const fermerAlerteNavigateur = document.getElementById("fermerAlerteNavigateur");
+
+		if (!("showDirectoryPicker" in window)) {
+			alerteNavigateur.hidden = false;
+		}
+
+		fermerAlerteNavigateur.addEventListener("click", () => {
+			alerteNavigateur.hidden = true;
+		});
+
+		// ============================================================
+		// NOTIFICATIONS ET CONFIRMATIONS
+		// ============================================================
+
+		const toastContainer = document.getElementById("toastContainer");
+		const confirmOverlay = document.getElementById("confirmOverlay");
+		const confirmMessage = document.getElementById("confirmMessage");
+		const confirmAnnuler = document.getElementById("confirmAnnuler");
+		const confirmValider = document.getElementById("confirmValider");
+
+		function toast(message, type = "info", duree = 5500) {
+			const element = document.createElement("div");
+			element.className = `toast ${type}`;
+			element.innerHTML = message;
+
+			toastContainer.appendChild(element);
+
+			setTimeout(() => {
+				element.classList.add("sortie");
+				element.addEventListener("animationend", () => element.remove(), {
+					once: true
+				});
+			}, duree);
+		}
+
+		function confirmToast(message) {
+			return new Promise(resolve => {
+				confirmMessage.innerHTML = message;
+				confirmOverlay.hidden = false;
+
+				const fermer = (resultat) => {
+					confirmOverlay.hidden = true;
+					confirmAnnuler.removeEventListener("click", annuler);
+					confirmValider.removeEventListener("click", valider);
+					resolve(resultat);
+				};
+
+				const annuler = () => fermer(false);
+				const valider = () => fermer(true);
+
+				confirmAnnuler.addEventListener("click", annuler);
+				confirmValider.addEventListener("click", valider);
+
+				confirmAnnuler.focus();
+			});
+		}
+
+		// ============================================================
+		// DATE / CALENDRIER
+		// ============================================================
+
+		let now = new Date();
+		let jourActuelDuMois = now.getDate(); // Pour savoir si on grise ou non les jours futurs
+
+		// Recalcul de « maintenant » au retour sur l'onglet :
+		// un onglet laissé ouvert la nuit ne reste plus figé sur hier.
+		document.addEventListener("visibilitychange", async () => {
+			if (document.visibilityState !== "visible") return;
+			const nouvelleDate = new Date();
+			if (nouvelleDate.toDateString() !== now.toDateString()) {
+				now = nouvelleDate;
+				jourActuelDuMois = now.getDate();
+				construireGrilleCalendrier();
+				if (window.derniersHandlesCharges) {
+					await traiterDossierImages(window.derniersHandlesCharges, false);
+				}
+			}
+		});
+
+		function melangerTableau(tableau) {
+			for (let i = tableau.length - 1; i > 0; i--) {
+				const j = Math.floor(Math.random() * (i + 1));
+				[tableau[i], tableau[j]] = [tableau[j], tableau[i]];
+			}
+			return tableau;
+		}
+
+		// Variables dynamiques pour la navigation
+		let anneeAffilee = now.getFullYear();
+		let moisAffiche = now.getMonth(); // 0 à 11
+		let nbJoursMois;
+		let dernierJourMois;
+
+		// Suivi des objectURL des images de la grille : on les révoque
+		// à chaque reconstruction de la grille, sinon chaque changement
+		// de mois laisse ~31 blobs orphelins en mémoire.
+		const urlsGrille = new Set();
+		function tracerUrlGrille(url) {
+			if (url) urlsGrille.add(url);
+		}
+		function revoquerUrlsGrille() {
+			urlsGrille.forEach(u => URL.revokeObjectURL(u));
+			urlsGrille.clear();
+		}
+
+		// Nettoyage des anciens mois dans le localStorage
+		//const currentKeyGrille = `calendrier_grille_${anneeAffilee}_${moisAffiche + 1}`;
+		//const currentKeyConfig = `calendrier_config_${anneeAffilee}_${moisAffiche + 1}`;
+
+		//Object.keys(localStorage).forEach(key => {
+		//	if (key.startsWith("calendrier_grille_") || key.startsWith("calendrier_config_")) {
+		//		if (key !== currentKeyGrille && key !== currentKeyConfig) {
+		//			localStorage.removeItem(key);
+		//		}
+		//	}
+		//});
+
+		// Nettoyage des mois des années précédentes dans le localStorage
+		Object.keys(localStorage).forEach(key => {
+			if (key.startsWith("calendrier_grille_") || key.startsWith("calendrier_config_")) {
+
+				const morceaux = key.split("_");
+				const annee = parseInt(morceaux[2], 10);
+
+				if (annee < anneeAffilee || annee > anneeAffilee) {
+					localStorage.removeItem(key);
+				}
+			}
+		});
+
+		// ============================================================
+		// ELEMENTS HTML
+		// ============================================================
+
+		const one = document.getElementById("one");
+		const two = document.getElementById("two");
+		const three = document.getElementById("three");
+		const loaderOverlay = document.getElementById("loaderOverlay");
+		const btnAnneePrec = document.getElementById("btnAnneePrec");
+		const btnMoisPrec = document.getElementById("btnMoisPrec");
+		const selecteurMoisAnnee = document.getElementById("selecteurMoisAnnee");
+		const btnNow = document.getElementById("btnNow");
+		const btnMoisSuiv = document.getElementById("btnMoisSuiv");
+		const btnAnneeSuiv = document.getElementById("btnAnneeSuiv");
+		const btnDiaporama = document.getElementById("btnDiaporama");
+		const btnDiaporamaGlobal = document.getElementById("btnDiaporamaGlobal");
+		const adventDoors = document.getElementById("adventDoors");
+		const modalZoom = document.getElementById("modalZoom");
+		const infoImg = document.getElementById("infoImg");
+		const imgPleinEcran = document.getElementById("imagePleinEcran");
+		const btnFermerZoom = document.getElementById("btnFermerZoom");
+		const btnImagePrecedente = document.getElementById("btnImagePrecedente");
+		const btnImageSuivante = document.getElementById("btnImageSuivante");
+		const numeroJourImage = document.getElementById("numeroJourImage");
+		const btnRaccourcis = document.getElementById("btnRaccourcis");
+		const panneauRaccourcis = document.getElementById("panneauRaccourcis");
+		const infoStatut = document.getElementById("infoStatut");
+		const rangeVitesseDiapo = document.getElementById("rangeVitesseDiapo");
+		const valeurVitesseDiapo = document.getElementById("valeurVitesseDiapo");
+		const faviconTag = document.getElementById("favicon");
+		const btnDossier = document.getElementById("btnDossier");
+		const btnToggleOpacite = document.getElementById("btnToggleOpacite");
+		const btnToggleCalendar = document.getElementById("btnToggleCalendar");
+
+
+		// ============================================================
+		// VARIABLES VISIONNEUSE
+		// ============================================================
+
+		let jourImageActuel = null;
+		let scale = 1;
+		let save = 1;
+		let pointX = 0;
+		let pointY = 0;
+		let activeImg = null;
+		let panning = false;
+		let hasMoved = false;
+		let suppressClick = false;
+		let timerClicPleinEcran = null; // Pour distinguer simple clic (plein écran) et double clic (galerie)
+		let startX = 0;
+		let startY = 0;
+
+
+		// ============================================================
+		// CREATION DES JOURS DE LA SEMAINE
+		// ============================================================
+
+		function getNumeroSemaine(date) {
+			const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+			const jourNum = d.getUTCDay() || 7;
+			d.setUTCDate(d.getUTCDate() + 4 - jourNum);
+			const anneeDebut = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+			return Math.ceil((((d - anneeDebut) / 86400000) + 1) / 7);
+		}
+
+		// ============================================================
+		// JOURS FÉRIÉS FRANÇAIS (fixes + calcul de Pâques)
+		// ============================================================
+
+		// Dimanche de Pâques (algorithme de Meeus/Jones/Butcher)
+		function datePaques(an) {
+			const a = an % 19;
+			const b = Math.floor(an / 100);
+			const c = an % 100;
+			const d = Math.floor(b / 4);
+			const e = b % 4;
+			const f = Math.floor((b + 8) / 25);
+			const g = Math.floor((b - f + 1) / 3);
+			const h = (19 * a + b - d - g + 15) % 30;
+			const i = Math.floor(c / 4);
+			const k = c % 4;
+			const l = (32 + 2 * e + 2 * i - h - k) % 7;
+			const m = Math.floor((a + 11 * h + 22 * l) / 451);
+			const moisPaques = Math.floor((h + l - 7 * m + 114) / 31);
+			const jourPaques = ((h + l - 7 * m + 114) % 31) + 1;
+			return new Date(an, moisPaques - 1, jourPaques);
+		}
+
+		// Liste des jours fériés d'une année (mois 0 à 11)
+		function listeJoursFeries(an) {
+			const paques = datePaques(an);
+			return [
+				{ date: new Date(an, 0, 1), nom: "Jour de l'an" },
+				{ date: new Date(an, 4, 1), nom: "Fête du Travail" },
+				{ date: new Date(an, 4, 8), nom: "Victoire 1945" },
+				{ date: new Date(an, 6, 14), nom: "Fête nationale" },
+				{ date: new Date(an, 7, 15), nom: "Assomption" },
+				{ date: new Date(an, 10, 1), nom: "Toussaint" },
+				{ date: new Date(an, 10, 11), nom: "Armistice 1918" },
+				{ date: new Date(an, 11, 25), nom: "Noël" },
+				{ date: new Date(an, paques.getMonth(), paques.getDate()), nom: "Dimanche de Pâques" },
+				{ date: new Date(an, paques.getMonth(), paques.getDate() + 1), nom: "Lundi de Pâques" },
+				{ date: new Date(an, paques.getMonth(), paques.getDate() + 39), nom: "Ascension" },
+				{ date: new Date(an, paques.getMonth(), paques.getDate() + 49), nom: "Dimanche de Pentecôte" },
+				{ date: new Date(an, paques.getMonth(), paques.getDate() + 50), nom: "Lundi de Pentecôte" }
+			];
+		}
+
+		// Renvoie {date, nom} si le jour est férié, sinon null
+		function trouverJourFerie(an, mois, jour) {
+			return listeJoursFeries(an).find(f =>
+				f.date.getDate() === jour && f.date.getMonth() === mois
+			) || null;
+		}
+
+		// ============================================================
+		// JOURS REPÈRES (dates traditionnelles, festives et liturgiques)
+		// Affichés uniquement dans l'info-bulle : AUCUN style ni bordure
+		// particulière, les jours gardent leur apparence d'origine.
+		// ============================================================
+
+		function listeJoursReperes(an) {
+			const paques = datePaques(an);
+
+			// n-ième dimanche d'un mois (mois de 0 à 11)
+			const nemeDimanche = (mois, n) => {
+				const premier = new Date(an, mois, 1);
+				const decalage = (7 - premier.getDay()) % 7;
+				return new Date(an, mois, 1 + decalage + (n - 1) * 7);
+			};
+
+			// dernier dimanche d'un mois
+			const dernierDimanche = (mois) => {
+				const dernierJour = new Date(an, mois + 1, 0);
+				const retrait = dernierJour.getDay() === 0 ? 0 : dernierJour.getDay();
+				return new Date(an, mois, dernierJour.getDate() - retrait);
+			};
+
+			// Fête des mères : dernier dimanche de mai, sauf si c'est la
+			// Pentecôte, auquel cas premier dimanche de juin
+			const dimanchePentecote = new Date(an, paques.getMonth(), paques.getDate() + 49);
+			const dernierDimancheMai = dernierDimanche(4);
+			const fetesMeres = (dernierDimancheMai.getTime() === dimanchePentecote.getTime())
+				? nemeDimanche(5, 1)
+				: dernierDimancheMai;
+
+			// 1er dimanche de l'Avent (4e dimanche avant Noël)
+			const veilleNoel = new Date(an, 11, 24);
+			const retraitAvent = veilleNoel.getDay() === 0 ? 0 : veilleNoel.getDay();
+			const premierAvent = new Date(an, 11, 24 - retraitAvent - 21);
+
+			return [
+				// Dates fixes
+				{ date: new Date(an, 0, 6), nom: "Épiphanie (Fête des Rois)" },
+				{ date: new Date(an, 1, 2), nom: "Chandeleur" },
+				{ date: new Date(an, 1, 14), nom: "Saint-Valentin" },
+				{ date: new Date(an, 2, 17), nom: "Saint-Patrick" },
+				{ date: new Date(an, 3, 1), nom: "Poisson d'avril" },
+				{ date: new Date(an, 5, 21), nom: "Fête de la musique" },
+				{ date: new Date(an, 5, 24), nom: "Fête de la Saint-Jean" },
+				{ date: new Date(an, 9, 31), nom: "Halloween" },
+				{ date: new Date(an, 11, 6), nom: "Saint-Nicolas" },
+				{ date: new Date(an, 11, 24), nom: "Réveillon de Noël" },
+				{ date: new Date(an, 11, 31), nom: "Saint-Sylvestre (Réveillon)" },
+				// Dates calculées
+				{ date: nemeDimanche(2, 1), nom: "Fête des grands-mères" },
+				{ date: dernierDimanche(2), nom: "Passage à l'heure d'été" },
+				{ date: fetesMeres, nom: "Fête des mères" },
+				{ date: nemeDimanche(5, 3), nom: "Fête des pères" },
+				{ date: dernierDimanche(9), nom: "Passage à l'heure d'hiver" },
+				{ date: premierAvent, nom: "1er dimanche de l'Avent" },
+				// Dates liturgiques (calculées depuis Pâques)
+				{ date: new Date(an, paques.getMonth(), paques.getDate() - 47), nom: "Mardi Gras" },
+				{ date: new Date(an, paques.getMonth(), paques.getDate() - 46), nom: "Mercredi des Cendres" },
+				{ date: new Date(an, paques.getMonth(), paques.getDate() - 7), nom: "Rameaux" },
+				{ date: new Date(an, paques.getMonth(), paques.getDate() - 3), nom: "Jeudi Saint" },
+				{ date: new Date(an, paques.getMonth(), paques.getDate() - 2), nom: "Vendredi Saint" },
+				{ date: new Date(an, paques.getMonth(), paques.getDate() + 56), nom: "Dimanche de la Trinité" },
+				{ date: new Date(an, paques.getMonth(), paques.getDate() + 60), nom: "Fête-Dieu" }
+			];
+		}
+
+		// Renvoie les noms des repères du jour, joints par " • ", sinon null
+		function trouverJoursReperes(an, mois, jour) {
+			const noms = listeJoursReperes(an)
+				.filter(f => f.date.getDate() === jour && f.date.getMonth() === mois)
+				.map(f => f.nom);
+			return noms.length > 0 ? noms.join(" • ") : null;
+		}
+
+		const joursSemaine = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+
+		const moisNoms = [
+			"janvier", "février", "mars", "avril", "mai", "juin",
+			"juillet", "août", "septembre", "octobre", "novembre", "décembre"
+		];
+
+		const joursNoms = [
+			"dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"
+		];
+
+		let titre = "Mon Calendrier"
+
+		function construireGrilleCalendrier() {
+			const dateCible = new Date(anneeAffilee, moisAffiche, 1);
+			const optionsDate = { year: 'numeric', month: 'long' };
+			const titreMoisAnnee = dateCible.toLocaleDateString('fr-FR', optionsDate);
+			titre = titreMoisAnnee.charAt(0).toUpperCase() + titreMoisAnnee.slice(1);
+			document.getElementById("titreCalendrier").textContent = titre;
+
+			const moisFormatInput = String(moisAffiche + 1).padStart(2, "0");
+			selecteurMoisAnnee.value = `${anneeAffilee}-${moisFormatInput}`;
+
+			// Libération des objectURL de l'ancienne grille (anti-fuite mémoire)
+			revoquerUrlsGrille();
+
+			adventDoors.innerHTML = "";
+
+			// Case vide pour l'angle en haut à gauche (au-dessus des numéros de semaine)
+			const liCoin = document.createElement("li");
+			liCoin.className = "case-vide";
+			adventDoors.appendChild(liCoin);
+
+			// En-têtes des jours de la semaine
+			joursSemaine.forEach(jour => {
+				const liHeader = document.createElement("li");
+				liHeader.className = "jour-semaine";
+				liHeader.textContent = jour;
+				adventDoors.appendChild(liHeader);
+			});
+
+			dernierJourMois = new Date(anneeAffilee, moisAffiche + 1, 0);
+			nbJoursMois = dernierJourMois.getDate();
+			let premierJourIndex = new Date(anneeAffilee, moisAffiche, 1).getDay();
+			premierJourIndex = (premierJourIndex === 0) ? 6 : premierJourIndex - 1;
+
+			// Calcul de la première semaine à afficher
+			let semaineCourante = getNumeroSemaine(new Date(anneeAffilee, moisAffiche, 1));
+
+			// Ajout du premier bloc numéro de semaine
+			const liSemaine = document.createElement("li");
+			liSemaine.className = "numero-semaine";
+			liSemaine.textContent = `S${semaineCourante}`;
+			adventDoors.appendChild(liSemaine);
+
+			// Cases vides avant le premier jour
+			for (let i = 0; i < premierJourIndex; i++) {
+				const li = document.createElement("li");
+				li.className = "case-vide";
+				adventDoors.appendChild(li);
+			}
+
+			// Création des cases du mois
+			for (let i = 1; i <= nbJoursMois; i++) {
+				const dateCourante = new Date(anneeAffilee, moisAffiche, i);
+				const indexJourActuel = (dateCourante.getDay() === 0) ? 6 : dateCourante.getDay() - 1;
+
+				// Si on recommence une ligne (lundi) et que ce n'est pas le tout premier jour, on insère le numéro de la semaine
+				if (indexJourActuel === 0 && i > 1) {
+					semaineCourante = getNumeroSemaine(dateCourante);
+					const liSem = document.createElement("li");
+					liSem.className = "numero-semaine";
+					liSem.textContent = `S${semaineCourante}`;
+					adventDoors.appendChild(liSem);
+				}
+
+				const li = document.createElement("li");
+				const a = document.createElement("a");
+				const jourFormate = String(i).padStart(2, "0");
+
+				const ferieDuJour = trouverJourFerie(anneeAffilee, moisAffiche, i);
+				const repereDuJour = ferieDuJour ? null : trouverJoursReperes(anneeAffilee, moisAffiche, i);
+				const libelleSpecial = ferieDuJour ? ferieDuJour.nom : repereDuJour;
+				a.title = `${joursNoms[dateCourante.getDay()]} ${jourFormate} ${moisNoms[moisAffiche]} ${anneeAffilee}${libelleSpecial ? ` • ${libelleSpecial}` : ""}`;
+				a.dataset.jour = i;
+
+				if (ferieDuJour) {
+					a.classList.add("jour-ferie");
+				}
+
+				const estAujourdhui = (i === jourActuelDuMois && moisAffiche === now.getMonth() && anneeAffilee === now.getFullYear());
+				if (estAujourdhui) {
+					a.classList.add("jour-actuel");
+				}
+
+				const estFutur = (anneeAffilee > now.getFullYear()) ||
+								 (anneeAffilee === now.getFullYear() && moisAffiche > now.getMonth()) ||
+								 (anneeAffilee === now.getFullYear() && moisAffiche === now.getMonth() && i > jourActuelDuMois);
+
+				if (estFutur) {
+					a.classList.add("disabled");
+				}
+
+				a.innerHTML = `<span>${i}</span><img loading="lazy" style="display: none;" alt="Jour ${i}">`;
+
+				a.addEventListener("click", (e) => {
+					if (suppressClick) {
+						e.preventDefault();
+						return;
+					}
+					e.preventDefault();
+					// Simple clic : plein écran direct — mais on attend un peu
+					// pour laisser la place au double clic (galerie).
+					clearTimeout(timerClicPleinEcran);
+					timerClicPleinEcran = setTimeout(() => {
+						afficherImageJour(Number(a.dataset.jour), a.title);
+					}, 250);
+				});
+
+				// Double-clic : ouvrir la galerie pour choisir l'image du jour
+				a.addEventListener("dblclick", (e) => {
+					e.preventDefault();
+					clearTimeout(timerClicPleinEcran);
+					ouvrirGalerie(Number(a.dataset.jour));
+				});
+
+				li.appendChild(a);
+				adventDoors.appendChild(li);
+			}
+			window.location.hash = "#adventDoors";
+		}
+
+		construireGrilleCalendrier()
+
+		// ============================================================
+		// INDEXEDDB
+		// ============================================================
+
+		const DB_IMAGES_NAME = "CalendrierImagesDB";
+		const DB_IMAGES_VERSION = 2;
+		const DB_IMAGES_STORE = "images";
+		const DB_DIRECTORY_STORE = "directory";
+
+		function ouvrirBaseImages() {
+			return new Promise((resolve, reject) => {
+				const request = indexedDB.open(DB_IMAGES_NAME, DB_IMAGES_VERSION);
+
+				request.onupgradeneeded = () => {
+					const db = request.result;
+					if (!db.objectStoreNames.contains(DB_IMAGES_STORE)) {
+						db.createObjectStore(DB_IMAGES_STORE);
+					}
+					if (!db.objectStoreNames.contains(DB_DIRECTORY_STORE)) {
+						db.createObjectStore(DB_DIRECTORY_STORE);
+					}
+				};
+
+				request.onsuccess = () => { resolve(request.result); };
+				request.onerror = () => { reject(request.error); };
+			});
+		}
+
+		async function sauvegarderDossier(dirHandle) {
+			const db = await ouvrirBaseImages();
+			return new Promise((resolve, reject) => {
+				const transaction = db.transaction(DB_DIRECTORY_STORE, "readwrite");
+				const store = transaction.objectStore(DB_DIRECTORY_STORE);
+				store.put(dirHandle, "dossierPrincipal");
+
+				transaction.oncomplete = () => { resolve(); };
+				transaction.onerror = () => { reject(transaction.error); };
+				transaction.onabort = () => { reject(transaction.error || new Error("Sauvegarde annulée")); };
+			});
+		}
+
+		async function sauvegarderDossierDropFichiers() {
+			const db = await ouvrirBaseImages();
+			return new Promise((resolve, reject) => {
+				const tx = db.transaction(DB_DIRECTORY_STORE, "readwrite");
+				const store = tx.objectStore(DB_DIRECTORY_STORE);
+				store.put({ name: "fichiers déposés" }, "dossierPrincipal");
+				tx.oncomplete = resolve;
+				tx.onerror = () => reject(tx.error);
+				tx.onabort = () => { reject(tx.error || new Error("Sauvegarde annulée")); };
+			});
+		}
+
+		async function effacerDossier() {
+			indexedDB.deleteDatabase(DB_IMAGES_NAME);
+		}
+
+		async function recupererDossier() {
+			const db = await ouvrirBaseImages();
+			return new Promise((resolve, reject) => {
+				const transaction = db.transaction(DB_DIRECTORY_STORE, "readonly");
+				const store = transaction.objectStore(DB_DIRECTORY_STORE);
+				const request = store.get("dossierPrincipal");
+
+				request.onsuccess = () => { resolve(request.result || null); };
+				request.onerror = () => { reject(request.error); };
+			});
+		}
+
+		async function sauvegarderImagesCache(rawHandles) {
+			const db = await ouvrirBaseImages();
+			const images = [];
+
+			// 1. Étape de lecture des blobs (on évite d'écrire tout de suite pour séparer la lecture de l'écriture)
+			for (let i = 0; i < rawHandles.length; i++) {
+				const handle = rawHandles[i];
+				const file = await handle.getFile();
+				images.push({ name: file.name, type: file.type, blob: file });
+
+				// Mise à jour de l'UI tous les 10 fichiers pour ne pas saturer le thread principal
+				if (i % 10 === 0 || i === rawHandles.length - 1) {
+					infoStatut.textContent = `💾 Préparation des images : ${i + 1} / ${rawHandles.length}`;
+					await new Promise(resolve => setTimeout(resolve, 0));
+				}
+			}
+
+			// 2. Étape d'écriture ultra-rapide en UNE SEULE transaction
+			return new Promise((resolve, reject) => {
+				const transaction = db.transaction(DB_IMAGES_STORE, "readwrite");
+				const store = transaction.objectStore(DB_IMAGES_STORE);
+
+				// On vide l'ancien store dans la même transaction
+				const clearRequest = store.clear();
+
+				clearRequest.onsuccess = () => {
+					let compteur = 0;
+					for (const image of images) {
+						// On lance les .put() à la suite dans la même transaction active
+						store.put(image, image.name);
+						compteur++;
+					}
+					infoStatut.textContent = `💾 Insertion de ${compteur} images en cours...`;
+				};
+
+				transaction.oncomplete = () => {
+					infoStatut.textContent = `💾 Sauvegarde terminée avec succès (${images.length} images) !`;
+					resolve();
+				};
+
+				transaction.onerror = () => {
+					reject(transaction.error);
+				};
+
+				transaction.onabort = () => {
+					reject(transaction.error || new Error("Transaction de sauvegarde annulée"));
+				};
+			});
+		}
+
+		async function recupererImagesCache() {
+			const db = await ouvrirBaseImages();
+			return new Promise((resolve, reject) => {
+				const transaction = db.transaction(DB_IMAGES_STORE, "readonly");
+				const store = transaction.objectStore(DB_IMAGES_STORE);
+				const request = store.getAll();
+
+				request.onsuccess = () => {
+					const images = request.result || [];
+					const handles = images.map(image => ({
+						name: image.name,
+						getFile: async () => image.blob
+					}));
+					resolve(handles);
+				};
+				request.onerror = () => { reject(request.error); };
+			});
+		}
+
+		async function getFileHandlesFromDirectory(dirHandle) {
+			let handles = [];
+			for await (const entry of dirHandle.values()) {
+				if (entry.kind === "file") {
+					const fileName = entry.name.toLowerCase();
+					if (
+						fileName.endsWith(".jpg") ||
+						fileName.endsWith(".jpeg") ||
+						fileName.endsWith(".png") ||
+						fileName.endsWith(".webp") ||
+						fileName.endsWith(".gif") ||
+						fileName.endsWith(".avif") ||
+						fileName.endsWith(".bmp") ||
+						fileName.endsWith(".tif") ||
+						fileName.endsWith(".tiff") ||
+						fileName.endsWith(".heic") ||
+						fileName.endsWith(".heif") ||
+						fileName.endsWith(".svg")
+					) {
+						handles.push(entry);
+					}
+				} else if (entry.kind === "directory") {
+					const subHandles = await getFileHandlesFromDirectory(entry);
+					handles = handles.concat(subHandles);
+				}
+			}
+			return handles;
+		}
+
+		async function traiterDossierImages(rawHandles, sauvegarderCache = true) {
+			loaderOverlay.classList.remove("cache");
+			await new Promise(resolve => setTimeout(resolve, 30));
+
+			if (!rawHandles || rawHandles.length === 0) {
+				toast("Aucune image valide trouvée !", "warning");
+				infoStatut.textContent = "Aucune image trouvée.";
+				loaderOverlay.classList.add("cache");
+				return;
+			}
+
+			const MAX_IMAGES = 1000;
+			let handlesAUtiliser = rawHandles;
+			if (rawHandles.length > MAX_IMAGES) {
+				infoStatut.textContent = `📂 ${rawHandles.length} images trouvées. Sélection aléatoire de ${MAX_IMAGES} images...`;
+				const tableauMelange = melangerTableau([...rawHandles]);
+				handlesAUtiliser = tableauMelange.slice(0, MAX_IMAGES);
+			}
+
+			if (sauvegarderCache) {
+				infoStatut.textContent = "💾 Sauvegarde des images...";
+				await sauvegarderImagesCache(handlesAUtiliser);
+			}
+
+			infoStatut.textContent = `🔍 Affectation des images en cours pour ${titre} ...`;
+
+			const handleMap = {};
+			handlesAUtiliser.forEach(h => { handleMap[h.name] = h; });
+			const allNames = Object.keys(handleMap);
+
+			const storageKeyGrille = `calendrier_grille_${anneeAffilee}_${moisAffiche + 1}`;
+			const storageKeyConfig = `calendrier_config_${anneeAffilee}_${moisAffiche + 1}`;
+
+			let attributionMois = JSON.parse(localStorage.getItem(storageKeyGrille));
+			let configFonds = JSON.parse(localStorage.getItem(storageKeyConfig));
+
+			if (!attributionMois) {
+				attributionMois = {};
+			}
+
+			const nomsMelanges = melangerTableau([...allNames]);
+			let indexMelange = 0;
+
+			for (let i = 1; i <= nbJoursMois; i++) {
+				const cleJour = `jour_${i}`;
+				const nomActuel = attributionMois[cleJour];
+
+				if (!nomActuel || !handleMap[nomActuel]) {
+					while (indexMelange < nomsMelanges.length && Object.values(attributionMois).includes(nomsMelanges[indexMelange])) {
+						indexMelange++;
+					}
+					if (indexMelange >= nomsMelanges.length) indexMelange = 0;
+
+					attributionMois[cleJour] = nomsMelanges[indexMelange];
+					indexMelange++;
+				}
+			}
+			localStorage.setItem(storageKeyGrille, JSON.stringify(attributionMois));
+
+			if (!configFonds) {
+				configFonds = {};
+			}
+
+			const remainingNames = allNames.filter(name => !Object.values(attributionMois).includes(name));
+			const poolChoix = remainingNames.length >= 3 ? remainingNames : allNames;
+
+			function piocherImageUnique(exclus = []) {
+				let options = poolChoix.filter(n => !exclus.includes(n));
+				if (options.length === 0) options = poolChoix;
+				return options[Math.floor(Math.random() * options.length)];
+			}
+
+			if (!configFonds.bodyImg || !handleMap[configFonds.bodyImg]) {
+				configFonds.bodyImg = piocherImageUnique();
+			}
+
+			if (!configFonds.gridImg || !handleMap[configFonds.gridImg]) {
+				configFonds.gridImg = piocherImageUnique([configFonds.bodyImg]);
+			}
+
+			if (!configFonds.favImg || !handleMap[configFonds.favImg]) {
+				configFonds.favImg = piocherImageUnique([configFonds.bodyImg, configFonds.gridImg]);
+			}
+
+			localStorage.setItem(storageKeyConfig, JSON.stringify(configFonds));
+
+			// --- AFFICHAGE DES JOURS DU CALENDRIER ---
+			const liensJours = adventDoors.querySelectorAll("li a");
+
+			liensJours.forEach(a => {
+				const jourNum = a.dataset.jour;
+				const cleJour = `jour_${jourNum}`;
+				const fileName = attributionMois[cleJour];
+				const imgElement = a.querySelector("img");
+
+				if (fileName && handleMap[fileName]) {
+					handleMap[fileName].getFile().then(file => {
+						if (imgElement.dataset.objectUrl) {
+							URL.revokeObjectURL(imgElement.dataset.objectUrl);
+						}
+						const objectUrl = URL.createObjectURL(file);
+						tracerUrlGrille(objectUrl);
+
+						imgElement.onerror = () => {
+							URL.revokeObjectURL(objectUrl);
+							const nouveauNom = allNames[Math.floor(Math.random() * allNames.length)];
+							attributionMois[cleJour] = nouveauNom;
+							localStorage.setItem(storageKeyGrille, JSON.stringify(attributionMois));
+
+							handleMap[nouveauNom].getFile().then(newFile => {
+								const newObjectUrl = URL.createObjectURL(newFile);
+								tracerUrlGrille(newObjectUrl);
+								imgElement.src = newObjectUrl;
+								imgElement.dataset.objectUrl = newObjectUrl;
+								imgElement.ariaLabel = nouveauNom;
+								imgElement.style.display = "block";
+							}).catch(() => {});
+						};
+
+						imgElement.src = objectUrl;
+						if (imgElement.dataset.objectUrl) {
+							URL.revokeObjectURL(imgElement.dataset.objectUrl);
+						}
+						imgElement.dataset.objectUrl = objectUrl;
+						imgElement.ariaLabel = fileName
+						imgElement.style.display = "block";
+					}).catch(() => {});
+				}
+			});
+
+			const urlsFonds = {
+				body: null,
+				grid: null,
+				fav: null
+			};
+
+			function remplacerUrlFond(typeConfig, nouvelleUrl) {
+				// Révoque l'ancienne URL si elle existe
+				if (urlsFonds[typeConfig]) {
+					URL.revokeObjectURL(urlsFonds[typeConfig]);
+				}
+
+				// Stocke la nouvelle URL
+				urlsFonds[typeConfig] = nouvelleUrl;
+			}
+
+			// --- FONCTION DE TEST ET APPLICATION SÉCURISÉE DES FONDS (ÉVITE LES BLOBS MORTS) ---
+			async function appliquerFondAvecTest(typeConfig, appliquerFn) {
+				let nomFichier = configFonds[typeConfig];
+				let handle = handleMap[nomFichier];
+
+				if (!handle) {
+					nomFichier = allNames[Math.floor(Math.random() * allNames.length)];
+					configFonds[typeConfig] = nomFichier;
+					localStorage.setItem(storageKeyConfig, JSON.stringify(configFonds));
+					handle = handleMap[nomFichier];
+				}
+
+				try {
+					const file = await handle.getFile();
+					const objectUrl = URL.createObjectURL(file);
+
+					// On teste le blob via un objet Image invisible pour s'assurer qu'il charge sans erreur réseau
+					const testImg = new Image();
+					testImg.onload = () => {
+						remplacerUrlFond(typeConfig, objectUrl);
+						appliquerFn(objectUrl);
+					};
+					testImg.onerror = async () => {
+						// Si le blob est mort, on régénère proprement un nouveau
+						URL.revokeObjectURL(objectUrl);
+						const nouveauNom = allNames[Math.floor(Math.random() * allNames.length)];
+						configFonds[typeConfig] = nouveauNom;
+						localStorage.setItem(storageKeyConfig, JSON.stringify(configFonds));
+
+						try {
+							const nouveauFile = await handleMap[nouveauNom].getFile();
+							const nouveauUrl = URL.createObjectURL(nouveauFile);
+							remplacerUrlFond(typeConfig, nouveauUrl);
+							appliquerFn(nouveauUrl);
+						} catch (e) {
+							console.error(`Erreur critique de remplacement pour ${typeConfig}`);
+						}
+					};
+					testImg.src = objectUrl;
+
+				} catch (err) {
+					// Fallback si getFile() échoue directement
+					const nouveauNom = allNames[Math.floor(Math.random() * allNames.length)];
+					configFonds[typeConfig] = nouveauNom;
+					localStorage.setItem(storageKeyConfig, JSON.stringify(configFonds));
+					const nouveauFile = await handleMap[nouveauNom].getFile();
+					const nouveauUrl = URL.createObjectURL(nouveauFile);
+					remplacerUrlFond(typeConfig, nouveauUrl);
+					appliquerFn(nouveauUrl);
+				}
+			}
+
+			// Application sécurisée du body, de la grille et maintenant du favicon
+			await appliquerFondAvecTest("bodyImg", (url) => {
+				document.body.style.backgroundImage = `url('${url}')`;
+				one.src = `${url}`;
+			});
+
+			await appliquerFondAvecTest("gridImg", (url) => {
+				adventDoors.style.backgroundImage = `url('${url}')`;
+				document.querySelector(".twAudessus").style.backgroundImage = `url('${url}')`;
+				two.src = `${url}`;
+			});
+
+			await appliquerFondAvecTest("favImg", async (url) => {
+				faviconTag.href = await blobVersDataUrlReduit(url, 128);
+				three.src = `${url}`;
+			});
+
+			const nomDossier = await recupererDossier();
+			const texteDossier = nomDossier?.name ? ` [${nomDossier.name}]` : "";
+			infoStatut.innerHTML = `${titre} chargé avec succès ! </br>${texteDossier}  (${handlesAUtiliser.length}/${rawHandles.length} images)`;
+			btnDossier.textContent = "📁 Changer de dossier";
+			loaderOverlay.classList.add("cache");
+			window.derniersHandlesCharges = handlesAUtiliser;
+		}
+
+		btnDossier.addEventListener("click", async () => {
+			try {
+				const dirHandle = await window.showDirectoryPicker();
+				loaderOverlay.classList.remove("cache");
+				infoStatut.textContent = "🔍 Analyse du dossier en cours...";
+				await sauvegarderDossier(dirHandle);
+				const rawHandles = await getFileHandlesFromDirectory(dirHandle);
+				if (rawHandles.length > 0) {
+					localStorage.clear();
+					sauverVitesseDiapo(); // la vitesse est une préférence : on la conserve
+					await traiterDossierImages(rawHandles, true);
+				} else {
+					loaderOverlay.classList.add("cache");
+					toast("Veuillez glisser un dossier contenant des images valides !", "warning");
+					infoStatut.textContent = "Aucune image trouvée dans le dépôt.";
+				}
+			} catch (err) {
+				loaderOverlay.classList.add("cache");
+				console.log("Sélection annulée :", err);
+				infoStatut.textContent = "Sélection de dossier annulée.";
+			}
+		});
+
+		document.getElementById("btnResetImages").addEventListener("click", async () => {
+			if (await confirmToast("Voulez-vous vraiment effacer les images enregistrées ?")) {
+				localStorage.clear();
+				sauverVitesseDiapo(); // la vitesse est une préférence : on la conserve
+				location.reload();
+			}
+		});
+
+		let estMasqueCalendar = false;
+		btnToggleCalendar.addEventListener("click", () => {
+			estMasqueCalendar = !estMasqueCalendar;
+			btnToggleCalendar.textContent = estMasqueCalendar ? "👁️ Afficher le calendrier" : "👁️ Masquer le calendrier";
+			document.querySelector(".-content").style.display = estMasqueCalendar ? "none" : "";
+		});
+
+		let estMasque = false;
+		btnToggleOpacite.addEventListener("click", () => {
+			estMasque = !estMasque;
+			btnToggleOpacite.textContent = estMasque ? "👁️ Afficher les jours" : "👁️ Masquer les jours";
+			adventDoors.querySelectorAll("li").forEach(li => {
+				li.style.opacity = estMasque ? "0" : "";
+			});
+		});
+
+		let dragCounter = 0;
+		document.addEventListener("dragenter", (e) => { e.preventDefault(); dragCounter++; document.body.classList.add("drag-active"); });
+		document.addEventListener("dragover", (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; document.body.classList.add("drag-active"); });
+		document.addEventListener("dragleave", (e) => { e.preventDefault(); dragCounter--; if (dragCounter <= 0) { dragCounter = 0; document.body.classList.remove("drag-active"); } });
+
+		document.addEventListener("drop", async (e) => {
+			e.preventDefault();
+			dragCounter = 0;
+			document.body.classList.remove("drag-active");
+			loaderOverlay.classList.remove("cache");
+			infoStatut.textContent = "🔍 Analyse du dossier déposé...";
+
+			const EXT_RE = /\.(jpe?g|png|webp|gif|avif|bmp|tiff?|heic|heif|svg)$/i;
+
+			try {
+				const items = e.dataTransfer.items;
+				const handlePromises = [];
+				for (let i = 0; i < items.length; i++) {
+					if (items[i].kind !== "file") continue;
+					handlePromises.push(
+						items[i].getAsFileSystemHandle
+							? items[i].getAsFileSystemHandle()
+							: Promise.resolve(null)
+					);
+				}
+
+				const handles = await Promise.all(handlePromises.map(p => p.catch(() => null)));
+
+				let rawHandles = [];
+				let dossierPrincipal = null;
+				for (const handle of handles) {
+					if (!handle) continue;
+
+					if (handle.kind === "directory") {
+						if (!dossierPrincipal) {
+							dossierPrincipal = true;
+							await sauvegarderDossier(handle);
+						}
+						const sousHandles = await getFileHandlesFromDirectory(handle);
+						rawHandles.push(...sousHandles);
+					}
+
+					if (handle.kind === "file" && EXT_RE.test(handle.name)) {
+						rawHandles.push(handle);
+					}
+				}
+
+				if (rawHandles.length > 0) {
+					localStorage.clear();
+					sauverVitesseDiapo();
+
+					if (!dossierPrincipal) {
+						await sauvegarderDossierDropFichiers();
+					}
+
+					await traiterDossierImages(rawHandles, true);
+				} else {
+					loaderOverlay.classList.add("cache");
+					toast("Veuillez glisser un dossier contenant des images valides !", "warning");
+					infoStatut.textContent = "Aucune image trouvée dans le dépôt.";
+				}
+			} catch (err) {
+				loaderOverlay.classList.add("cache");
+				console.error("Erreur lors du drop :", err);
+				infoStatut.textContent = "Erreur lors de la lecture du dossier déposé.";
+			}
+		});
+
+		async function afficherImageJour(jour, title) {
+			const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
+			if (!lien) return;
+
+			const dateDuJourSelectionne = new Date(anneeAffilee, moisAffiche, jour);
+			const aujourdhuiMinuit = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+			if (dateDuJourSelectionne > aujourdhuiMinuit) { toast(`🚫 ${lien.title} est encore dans le futur : l'affichage de l'image reste indisponible.`, "warning"); return;}
+
+			const imgElement = lien.querySelector("img");
+			if (!imgElement.src || imgElement.style.display === "none") return;
+
+			document.body.style.overflowY = "hidden";
+			resetZoom(imgPleinEcran);
+
+			if (!imgPleinEcran.classList.contains("diapo")) {
+				btnDiaporamaGlobal.innerHTML = btnDiaporamaGlobal.ariaLabel
+				modalZoom.appendChild(btnDiaporamaGlobal);
+				btnDiaporama.innerHTML = btnDiaporama.ariaLabel
+				modalZoom.appendChild(btnDiaporama);
+				imgPleinEcran.style.animation = 'none';
+				void imgPleinEcran.offsetHeight;
+				imgPleinEcran.style.animation = 'diapoAnim 0.4s ease-in-out forwards';
+			} else {
+				appliquerAnimationAleatoire()
+			}
+
+			imgPleinEcran.src = imgElement.src;
+			imgPleinEcran.style.display = "";
+			try {
+				await waitForImageLoad(imgPleinEcran);
+			} catch (e) {
+				return;
+			}
+			imgPleinEcran.title = title;
+			jourImageActuel = jour;
+			imgPleinEcran.ariaLabel = imgElement.ariaLabel
+			infoImg.innerHTML = imgElement.ariaLabel
+
+			const liensDisponibles = adventDoors.querySelectorAll("li a:not(.disabled)");
+			const joursValides = [];
+
+			liensDisponibles.forEach(a => {
+				const img = a.querySelector("img");
+				if (img && img.src && img.style.display !== "none") {
+					joursValides.push(Number(a.dataset.jour));
+				}
+			});
+
+			const totalValides = joursValides.length;
+
+			numeroJourImage.innerHTML = `Jour<br> <span style="font-size: 10px; opacity: 0.8;">${jour}/${totalValides}</span>`;
+			window.location.hash = "modalZoom";
+
+			let precedente = false;
+			for (let j = jour - 1; j >= 1; j--) {
+				const a = adventDoors.querySelector(`a[data-jour="${j}"]`);
+				if (!a) continue;
+				const img = a.querySelector("img");
+				if (img && img.src && img.style.display !== "none") {
+					precedente = true;
+					break;
+				}
+			}
+
+			let suivante = false;
+			for (let j = jour + 1; j <= nbJoursMois; j++) {
+				const a = adventDoors.querySelector(`a[data-jour="${j}"]`);
+				if (!a) continue;
+
+				// Correction ici : on utilise la date complète du jour j à vérifier
+				const dateVerificationSuivante = new Date(anneeAffilee, moisAffiche, j);
+				if (dateVerificationSuivante > aujourdhuiMinuit) continue;
+
+				const img = a.querySelector("img");
+				if (img && img.src && img.style.display !== "none") {
+					suivante = true;
+					break;
+				}
+			}
+
+			if (!imgPleinEcran.classList.contains("diapo")) {
+				btnImagePrecedente.style.display = precedente ? "flex" : "none";
+				btnImageSuivante.style.display = suivante ? "flex" : "none";
+			} else {
+				btnImagePrecedente.dataset.display = precedente ? "flex" : "none";
+				btnImageSuivante.dataset.display = suivante ? "flex" : "none";
+			}
+		}
+
+		function imagePrecedente() {
+			if (diapoGlobalInterval) return;
+			if (diapoInterval) return;
+			let jour = jourImageActuel - 1;
+			while (jour >= 1) {
+				const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
+				if (lien) {
+					const img = lien.querySelector("img");
+					if (img.src && img.style.display !== "none") {
+						afficherImageJour(jour, lien.title);
+						return;
+					}
+				}
+				jour--;
+			}
+		}
+
+		function imageSuivante() {
+			if (diapoGlobalInterval) return;
+			if (diapoInterval) return;
+			let jour = jourImageActuel + 1;
+			while (jour <= nbJoursMois) {
+				const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
+				if (lien) {
+					const img = lien.querySelector("img");
+					if (img.src && img.style.display !== "none") {
+						afficherImageJour(jour, lien.title);
+						return;
+					}
+				}
+				jour++;
+			}
+		}
+
+		// Navigation manuelle pendant le diaporama du mois (← / →) :
+		// indexActuelMois pointe sur la prochaine image prévue du cycle,
+		// l'image affichée est donc celle d'avant.
+		function sauterImageDiapoMois(sens) {
+			if (!window.joursValidesDiapo || joursValidesDiapo.length === 0) return;
+			const cible = sens > 0
+				? indexActuelMois
+				: (indexActuelMois - 2 + joursValidesDiapo.length) % joursValidesDiapo.length;
+			const jour = joursValidesDiapo[cible];
+			const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
+			if (lien) {
+				jourImageActuel = jour;
+				afficherImageJour(jour, lien.title);
+			}
+			// Le cycle reprendra sur l'image d'après la cible
+			indexActuelMois = (cible + 1) % joursValidesDiapo.length;
+			// Délai complet relancé depuis cette image (ou attente douce si en pause)
+			clearTimeout(diapoInterval);
+			diapoInterval = setTimeout(demarrerIntervalleMois, diapoEnPause ? 300 : intervalleDiapoMs);
+		}
+
+		// Navigation manuelle pendant le diaporama global (← / →) :
+		// indexActuelGlobal pointe sur la prochaine image prévue du cycle.
+		function sauterImageDiapoGlobal(sens) {
+			if (!urlsGlobalesObjets || urlsGlobalesObjets.length === 0) return;
+			const cible = sens > 0
+				? indexActuelGlobal
+				: (indexActuelGlobal - 2 + urlsGlobalesObjets.length) % urlsGlobalesObjets.length;
+			indexActuelGlobal = cible;
+			// Astuce : on relance le cycle qui affiche la cible puis se replanifie ;
+			// si on était en pause, on se remet en pause juste après l'affichage.
+			const etaitEnPause = diapoEnPause;
+			diapoEnPause = false;
+			clearTimeout(diapoGlobalInterval);
+			demarrerIntervalleGlobal();
+			if (etaitEnPause) diapoEnPause = true;
+		}
+
+		btnImagePrecedente.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); imagePrecedente(); });
+		btnImageSuivante.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); imageSuivante(); });
+
+		document.addEventListener("keydown", (e) => {
+			if (window.location.hash !== "#modalZoom") return;
+			// Flèches : navigation manuelle (aussi pendant les diaporamas)
+			if (e.key === "ArrowLeft") {
+				if (diapoInterval) sauterImageDiapoMois(-1);
+				else if (diapoGlobalInterval) sauterImageDiapoGlobal(-1);
+				else imagePrecedente();
+			}
+			if (e.key === "ArrowRight") {
+				if (diapoInterval) sauterImageDiapoMois(1);
+				else if (diapoGlobalInterval) sauterImageDiapoGlobal(1);
+				else imageSuivante();
+			}
+			if (e.key === "Escape") btnFermerZoom.click();
+
+			// Espace : pause / reprise du diaporama en cours
+			if (e.key === " " && imgPleinEcran.classList.contains("diapo")) {
+				e.preventDefault();
+				diapoEnPause = !diapoEnPause;
+				document.querySelector(".diapo-vitesse-label").textContent = diapoEnPause ? "⏸ Pause" : "Vitesse";
+			}
+
+			// + / - : vitesse du diaporama
+			if ((e.key === "+" || e.key === "=" || e.key === "-") && imgPleinEcran.classList.contains("diapo")) {
+				e.preventDefault();
+				let val = parseFloat(rangeVitesseDiapo.value) + (e.key === "-" ? -0.5 : 0.5);
+				val = Math.max(parseFloat(rangeVitesseDiapo.min), Math.min(parseFloat(rangeVitesseDiapo.max), val));
+				rangeVitesseDiapo.value = val;
+				rangeVitesseDiapo.dispatchEvent(new Event("input"));
+			}
+
+			// ? : afficher / masquer le panneau des raccourcis
+			if (e.key === "?" || e.key === "h" || e.key === "H") {
+				basculerRaccourcis();
+			}
+		});
+
+		// --- PANNEAU DES RACCOURCIS CLAVIER DU DIAPORAMA ---
+		function basculerRaccourcis() {
+			panneauRaccourcis.classList.toggle("visible");
+		}
+
+		function masquerRaccourcis() {
+			panneauRaccourcis.classList.remove("visible");
+		}
+
+		btnRaccourcis.addEventListener("click", (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			basculerRaccourcis();
+		});
+
+		btnNow.addEventListener("click", async () => {
+			const dateDuJour = new Date();
+			if ( (moisAffiche === dateDuJour.getMonth()) && (anneeAffilee === dateDuJour.getFullYear()) ) { infoStatut.textContent = "📅 Date identique !"; return; }
+			moisAffiche = dateDuJour.getMonth();
+			anneeAffilee = dateDuJour.getFullYear();
+			construireGrilleCalendrier();
+			if (window.derniersHandlesCharges) {
+				await traiterDossierImages(window.derniersHandlesCharges, false);
+			}
+		});
+
+		selecteurMoisAnnee.addEventListener("change", async (e) => {
+			const valeur = e.target.value; // Format renvoyé : "AAAA-MM" (ex: "2026-09")
+			if (!valeur) return;
+
+			const [anneeStr, moisStr] = valeur.split("-");
+			anneeAffilee = parseInt(anneeStr, 10);
+			moisAffiche = parseInt(moisStr, 10) - 1; // Les mois JS vont de 0 à 11
+
+			construireGrilleCalendrier();
+
+			if (window.derniersHandlesCharges) {
+				await traiterDossierImages(window.derniersHandlesCharges, false);
+			}
+		});
+
+		btnMoisPrec.addEventListener("click", async () => {
+			moisAffiche--;
+			if (moisAffiche < 0) {
+				moisAffiche = 11;
+				anneeAffilee--;
+			}
+			construireGrilleCalendrier();
+			if (window.derniersHandlesCharges) {
+				await traiterDossierImages(window.derniersHandlesCharges, false);
+			}
+		});
+
+		btnMoisSuiv.addEventListener("click", async () => {
+			moisAffiche++;
+			if (moisAffiche > 11) {
+				moisAffiche = 0;
+				anneeAffilee++;
+			}
+			construireGrilleCalendrier();
+			if (window.derniersHandlesCharges) {
+				await traiterDossierImages(window.derniersHandlesCharges, false);
+			}
+		});
+
+		btnAnneePrec.addEventListener("click", async () => {
+			anneeAffilee--;
+			construireGrilleCalendrier();
+			if (window.derniersHandlesCharges) {
+				await traiterDossierImages(window.derniersHandlesCharges, false);
+			}
+		});
+
+		btnAnneeSuiv.addEventListener("click", async () => {
+			anneeAffilee++;
+			construireGrilleCalendrier();
+			if (window.derniersHandlesCharges) {
+				await traiterDossierImages(window.derniersHandlesCharges, false);
+			}
+		});
+
+		// Variable pour stocker le verrouillage d'écran
+		let wakeLock = null;
+
+		// Fonction pour demander à garder l'écran allumé
+		async function demarrerWakeLock() {
+			if ('wakeLock' in navigator) {
+				try {
+					wakeLock = await navigator.wakeLock.request('screen');
+					//console.log('Verrouillage d\'écran actif (Wake Lock activé)');
+
+					// Si l'onglet change ou est minimisé, le verrouillage se libère automatiquement.
+					// On gère sa réactivation si l'utilisateur revient sur la page.
+					wakeLock.addEventListener('release', () => {
+						//console.log('Verrouillage d\'écran libéré');
+					});
+				} catch (err) {
+					console.error(`${err.name}, ${err.message}`);
+				}
+			}
+		}
+
+		// Fonction pour relâcher le verrouillage et laisser l'écran s'éteindre normalement
+		async function arreterWakeLock() {
+			if (wakeLock !== null) {
+				try {
+					await wakeLock.release();
+					wakeLock = null;
+					//console.log('Wake Lock relâché manuellement');
+				} catch (err) {
+					console.error(`${err.name}, ${err.message}`);
+				}
+			}
+		}
+
+		// Ré-activer automatiquement le Wake Lock si l'utilisateur revient sur l'onglet
+		document.addEventListener('visibilitychange', async () => {
+			if (wakeLock !== null && document.visibilityState === 'visible') {
+				await demarrerWakeLock();
+			}
+		});
+
+		// Vitesse du diaporama mémorisée d'une session à l'autre (localStorage)
+		const CLE_VITESSE_DIAPO = "calendrier_vitesse_diapo";
+		function sauverVitesseDiapo() {
+			localStorage.setItem(CLE_VITESSE_DIAPO, String(parseFloat(rangeVitesseDiapo.value)));
+		}
+		const vitesseSauvegardee = parseFloat(localStorage.getItem(CLE_VITESSE_DIAPO));
+		if (!isNaN(vitesseSauvegardee)) {
+			const v = Math.max(parseFloat(rangeVitesseDiapo.min), Math.min(parseFloat(rangeVitesseDiapo.max), vitesseSauvegardee));
+			rangeVitesseDiapo.value = v;
+		}
+
+		let intervalleDiapoMs = parseFloat(rangeVitesseDiapo.value) * 1000;
+		valeurVitesseDiapo.textContent = parseFloat(rangeVitesseDiapo.value) + "s";
+
+		rangeVitesseDiapo.addEventListener("input", (e) => {
+			const secondes = parseFloat(e.target.value);
+			intervalleDiapoMs = secondes * 1000;
+			valeurVitesseDiapo.textContent = secondes + "s";
+			sauverVitesseDiapo();
+		});
+
+		// Gestion de la molette
+		document.querySelector(".diapo-vitesse-wrapper").addEventListener("wheel", (e) => {
+			e.preventDefault();
+			let val = parseFloat(rangeVitesseDiapo.value) + (e.deltaY < 0 ? 0.5 : -0.5);
+			val = Math.max(parseFloat(rangeVitesseDiapo.min), Math.min(parseFloat(rangeVitesseDiapo.max), val));
+			rangeVitesseDiapo.value = val;
+			rangeVitesseDiapo.dispatchEvent(new Event("input"));
+		}, { passive: false });
+
+		async function attendreElement(selector) {
+		  return new Promise(resolve => {
+			const element = document.querySelector(selector);
+
+			if (element) {
+			  resolve(element);
+			  return;
+			}
+
+			const observer = new MutationObserver(() => {
+			  const element = document.querySelector(selector);
+
+			  if (element) {
+				observer.disconnect();
+				resolve(element);
+			  }
+			});
+
+			observer.observe(document.body, {
+			  childList: true,
+			  subtree: true
+			});
+		  });
+		}
+
+		async function waitForImageLoad(img) {
+		  return new Promise((resolve, reject) => {
+			if (img.complete && img.naturalWidth > 0) {
+			  resolve();
+			  return;
+			}
+
+			img.onload = () => resolve();
+			img.onerror = reject;
+		  });
+		}
+
+		async function attendrePleinEcran() {
+			window.location.hash = "modalZoom";
+			await new Promise(resolve => requestAnimationFrame(resolve));
+			if (!document.fullscreenElement) {
+				await document.documentElement.requestFullscreen();
+			}
+			const element = await attendreElement('#modalZoom');
+
+			await new Promise(resolve => {
+				requestAnimationFrame(() => {
+					requestAnimationFrame(resolve);
+				});
+			});
+		}
+
+		const effetsDiapo = ["effetZoomIn", "effetZoomOut", "effetSlideUp", "effetSlideDown", "effetSlideRight", "effetSlideLeft", "effetFade", "effetBlur", "effetRotate", "effetDiagonal", "effetCoin", "effetGlide", "effetPerspective", "effetStretch", "effetStretchHorizontal", "effetFlip", "effetKenBurns", "effetBounce", "effetGlitch",  "effetPulse", "effetWave", "effetFlash"];
+
+		function appliquerAnimationAleatoire() {
+			const animationChoisie = effetsDiapo[Math.floor(Math.random() * effetsDiapo.length)];
+			const secondes = intervalleDiapoMs / 1000;
+			imgPleinEcran.style.animation = 'none';
+			if ( secondes < 3. ) return;
+
+			void imgPleinEcran.offsetHeight;
+			imgPleinEcran.style.animation = `${animationChoisie} ${secondes}s ease-in-out forwards`;
+		}
+
+		let basculeDiaporama = null
+		let diapoInterval = null;
+		let indexActuelMois = 0;
+		let diapoEnPause = false;
+
+		async function demarrerIntervalleMois() {
+			// Diaporama en pause : on relit l'état régulièrement sans avancer
+			if (diapoEnPause) {
+				diapoInterval = setTimeout(demarrerIntervalleMois, 300);
+				return;
+			}
+			const jour = joursValidesDiapo[indexActuelMois];
+			const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
+			if (lien) {
+				jourImageActuel = jour;
+				afficherImageJour(jour, lien.title);
+			}
+
+			// On prépare l'image suivante
+			indexActuelMois++;
+			if (indexActuelMois >= joursValidesDiapo.length) {
+				indexActuelMois = 0;
+			}
+
+			// Préchargement en arrière-plan de l'image suivante (évite le petit blanc entre 2 photos)
+			const jourSuivant = joursValidesDiapo[indexActuelMois];
+			const lienSuivant = adventDoors.querySelector(`a[data-jour="${jourSuivant}"]`);
+			if (lienSuivant) {
+				const imgSuivante = lienSuivant.querySelector("img");
+				if (imgSuivante && imgSuivante.src) {
+					const preload = new Image();
+					preload.src = imgSuivante.src;
+				}
+			}
+
+			// Le timer lit la variable 'intervalleDiapoMs' en direct (modifiée par le slider)
+			diapoInterval = setTimeout(demarrerIntervalleMois, intervalleDiapoMs);
+		}
+
+		async function demarrerDiaporama() {
+			if (diapoGlobalInterval) {
+				basculeDiaporama = true
+				await arreterDiaporamaGlobal();
+			}
+			// 1. Récupérer tous les jours valides et ouverts du mois affiché
+			const joursValides = [];
+			const aujourdhuiMinuit = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+			for (let i = 1; i <= nbJoursMois; i++) {
+				const dateJour = new Date(anneeAffilee, moisAffiche, i);
+				if (dateJour <= aujourdhuiMinuit) {
+					const lien = adventDoors.querySelector(`a[data-jour="${i}"]`);
+					if (lien) {
+						const img = lien.querySelector("img");
+						if (img && img.src && img.style.display !== "none") {
+							joursValides.push(i);
+						}
+					}
+				}
+			}
+
+			if (joursValides.length === 0) {
+				toast("Aucune image disponible pour le diaporama ce mois-ci !", "warning");
+				return;
+			}
+
+			if (!imgPleinEcran.classList.contains("diapo")) {
+				modalZoom.appendChild(btnDiaporamaGlobal);
+				btnDiaporamaGlobal.innerHTML = "&#9658;";
+				btnDiaporamaGlobal.ariaLabel  = btnDiaporamaGlobal.innerHTML;
+				btnDiaporamaGlobal.title = "Démarrer le diaporama global";
+				modalZoom.appendChild(btnDiaporama);
+				btnDiaporama.innerHTML = "&#9208;";
+				btnDiaporama.ariaLabel  = btnDiaporama.innerHTML;
+				btnDiaporama.title = "Arrêter le diaporama du mois";
+				imgPleinEcran.classList.add("diapo");
+				modalZoom.title = "Arrêter le diaporama du mois";
+				modalZoom.style.cursor = "pointer";
+				document.querySelector(".twImgWrapper").title = "";
+				btnImagePrecedente.style.display = "none";
+				btnImageSuivante.style.display = "none";
+				demarrerWakeLock()
+			}
+
+			await attendrePleinEcran();
+
+			indexActuelMois = 0;
+			window.joursValidesDiapo = joursValides;
+			basculeDiaporama = null
+			diapoEnPause = false;
+			document.querySelector(".diapo-vitesse-label").textContent = "Vitesse";
+			// Lancer le timer pour faire défiler les images
+			demarrerIntervalleMois();
+		}
+
+		async function arreterDiaporama() {
+			if (diapoInterval) {
+				clearTimeout(diapoInterval);
+				diapoInterval = null;
+			}
+			diapoEnPause = false;
+			document.querySelector(".diapo-vitesse-label").textContent = "Vitesse";
+			masquerRaccourcis();
+			if (document.fullscreenElement && !basculeDiaporama) {
+				document.exitFullscreen().catch(err => {
+					console.error("Erreur lors de la sortie du plein écran :", err);
+				});
+			}
+			if (imgPleinEcran.classList.contains("diapo")) {
+				imgPleinEcran.classList.remove("diapo");
+				modalZoom.title = "Fermer";
+				modalZoom.style.cursor = "";
+				document.querySelector(".twImgWrapper").title = "Fermer zoom";
+				btnDiaporama.innerHTML = "&#9658;";
+				btnDiaporama.ariaLabel  = btnDiaporama.innerHTML;
+				btnDiaporama.title = "Lancer le diaporama du mois";
+				btnImagePrecedente.style.display = btnImagePrecedente.dataset.display;
+				btnImageSuivante.style.display = btnImageSuivante.dataset.display;
+				imgPleinEcran.style.animation = 'none';
+				void imgPleinEcran.offsetHeight;
+				arreterWakeLock();
+			}
+		}
+
+		btnDiaporama.addEventListener("click", () => {
+			if (diapoInterval) {
+				arreterDiaporama();
+			} else {
+				demarrerDiaporama();
+			}
+		});
+
+		let diapoGlobalInterval = null;
+		let indexActuelGlobal = 0;
+		let urlsGlobalesObjets = [];
+
+		async function demarrerIntervalleGlobal() {
+			// Diaporama en pause : on relit l'état régulièrement sans avancer
+			if (diapoEnPause) {
+				diapoGlobalInterval = setTimeout(demarrerIntervalleGlobal, 300);
+				return;
+			}
+			if (imgPleinEcran.classList.contains("zoomed")) {
+				imgPleinEcran.classList.remove("zoomed");
+				imgPleinEcran.removeAttribute("style");
+				imgPleinEcran.style.display = "none";
+			}
+
+			appliquerAnimationAleatoire()
+			imgPleinEcran.src = urlsGlobalesObjets[indexActuelGlobal].url;
+			imgPleinEcran.style.display = "";
+			await waitForImageLoad(imgPleinEcran);
+			imgPleinEcran.title = urlsGlobalesObjets[indexActuelGlobal].name;
+			infoImg.innerHTML = imgPleinEcran.title;
+			numeroJourImage.innerHTML = `Global<br><span style="font-size: 10px; opacity: 0.8;">${indexActuelGlobal + 1}/${urlsGlobalesObjets.length}</span>`;
+
+			indexActuelGlobal++;
+			if (indexActuelGlobal >= urlsGlobalesObjets.length) {
+				indexActuelGlobal = 0;
+			}
+
+			// Préchargement en arrière-plan de l'image suivante (évite le petit blanc entre 2 photos)
+			const preloadGlobal = new Image();
+			preloadGlobal.src = urlsGlobalesObjets[indexActuelGlobal].url;
+
+			// Le timer lit la variable 'intervalleDiapoMs' en direct (modifiée par le slider)
+			diapoGlobalInterval = setTimeout(demarrerIntervalleGlobal, intervalleDiapoMs);
+		}
+
+		async function demarrerDiaporamaGlobal() {
+			try {
+				if (diapoInterval) {
+					basculeDiaporama = true
+					await arreterDiaporama();
+				}
+				// 1. Récupérer toutes les images du cache IndexedDB
+				const imagesCache = await recupererImagesCache();
+				if (!imagesCache || imagesCache.length === 0) {
+					toast("Aucune image trouvée dans le cache !", "warning");
+					return;
+				}
+
+				// 2. Générer les URL objets pour chaque image
+				urlsGlobalesObjets = [];
+				for (const item of imagesCache) {
+					const file = await item.getFile();
+					urlsGlobalesObjets.push({
+						url: URL.createObjectURL(file),
+						name: item.name
+					});
+				}
+
+				melangerTableau(urlsGlobalesObjets);
+				indexActuelGlobal = 0;
+
+				if (!imgPleinEcran.classList.contains("diapo")) {
+					modalZoom.appendChild(btnDiaporamaGlobal);
+					btnDiaporamaGlobal.innerHTML = "&#9208;";
+					btnDiaporamaGlobal.ariaLabel  = btnDiaporamaGlobal.innerHTML;
+					btnDiaporamaGlobal.title = "Arrêter le diaporama global";
+					modalZoom.appendChild(btnDiaporama);
+					btnDiaporama.innerHTML = "&#9658;";
+					btnDiaporama.ariaLabel  = btnDiaporama.innerHTML;
+					btnDiaporama.title = "Lancer le diaporama du mois";
+					imgPleinEcran.classList.add("diapo");
+					modalZoom.title = "Arrêter le diaporama global";
+					modalZoom.style.cursor = "pointer";
+					document.querySelector(".twImgWrapper").title = "";
+					btnImagePrecedente.style.display = "none";
+					btnImageSuivante.style.display = "none";
+					document.body.style.overflowY = "hidden";
+					demarrerWakeLock();
+				}
+
+				await attendrePleinEcran();
+				basculeDiaporama = null
+				diapoEnPause = false;
+				document.querySelector(".diapo-vitesse-label").textContent = "Vitesse";
+				// 4. Lancer le défilement automatique
+				demarrerIntervalleGlobal();
+
+			} catch (err) {
+				console.error("Erreur lors du diaporama global :", err);
+			}
+		}
+
+		async function arreterDiaporamaGlobal() {
+			if (diapoGlobalInterval) {
+				clearTimeout(diapoGlobalInterval);
+				diapoGlobalInterval = null;
+			}
+			diapoEnPause = false;
+			document.querySelector(".diapo-vitesse-label").textContent = "Vitesse";
+			masquerRaccourcis();
+			if (document.fullscreenElement && !basculeDiaporama) {
+				document.exitFullscreen().catch(err => {
+					console.error("Erreur lors de la sortie du plein écran :", err);
+				});
+			}
+			if (imgPleinEcran.classList.contains("diapo")) {
+				urlsGlobalesObjets.forEach(item => URL.revokeObjectURL(item.url));
+				urlsGlobalesObjets = [];
+				imgPleinEcran.classList.remove("diapo");
+				modalZoom.title = "Fermer";
+				modalZoom.style.cursor = "";
+				document.querySelector(".twImgWrapper").title = "Fermer zoom";
+				btnDiaporamaGlobal.innerHTML = "&#9658;";
+				btnDiaporamaGlobal.ariaLabel  = btnDiaporamaGlobal.innerHTML;
+				btnDiaporamaGlobal.title = "Lancer le diaporama global";
+				imgPleinEcran.style.animation = 'none';
+				void imgPleinEcran.offsetHeight;
+				arreterWakeLock();
+			}
+		}
+
+		btnDiaporamaGlobal.addEventListener("click", () => {
+			if (diapoGlobalInterval) {
+				arreterDiaporamaGlobal();
+			} else {
+				demarrerDiaporamaGlobal();
+			}
+		});
+
+		function resetZoom(img) {
+			scale = 1;
+			save = 1;
+			pointX = 0;
+			pointY = 0;
+			img.style.transform = "translate(0px, 0px) scale(1)";
+			img.classList.remove("zoomed");
+		}
+
+		btnFermerZoom.addEventListener("click", (e) => {
+			e.preventDefault();
+			resetZoom(imgPleinEcran);
+			const actionsDiapo = document.querySelector("#act-diapo");
+			actionsDiapo.insertBefore(btnDiaporamaGlobal, actionsDiapo.firstChild);
+			actionsDiapo.insertBefore(btnDiaporama, actionsDiapo.firstChild);
+			if (diapoInterval) {
+				arreterDiaporama();
+			}
+			if (diapoGlobalInterval) {
+				arreterDiaporamaGlobal();
+			}
+			btnDiaporama.innerHTML = "&#9658; Diaporama du mois";
+			btnDiaporamaGlobal.innerHTML = "&#9658; Diaporama global";
+			document.body.style.overflowY = "auto";
+			window.location.hash = "#adventDoors";
+			setTimeout(() => { imgPleinEcran.style.display = "none";imgPleinEcran.removeAttribute("src"); }, 500);
+		});
+
+		//- window.addEventListener("hashchange", () => {
+			// if (!window.location.hash) {
+				// resetZoom(imgPleinEcran);
+			// }
+		// });
+
+		document.addEventListener("fullscreenchange", () => {
+			if (!document.fullscreenElement) {
+				if (diapoInterval) arreterDiaporama();
+				if (diapoGlobalInterval) arreterDiaporamaGlobal();
+			}
+		});
+
+		function updateTransform(img) {
+			if (img && img.classList.contains("zoomed")) {
+				img.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
+			}
+		}
+
+		imgPleinEcran.addEventListener("click", (e) => {
+			if (suppressClick) return;
+			e.stopPropagation();
+
+			if (!imgPleinEcran.classList.contains("zoomed")) {
+				imgPleinEcran.classList.add("zoomed");
+				const naturalW = imgPleinEcran.naturalWidth || imgPleinEcran.width;
+				const naturalH = imgPleinEcran.naturalHeight || imgPleinEcran.height;
+				const windowW = window.innerWidth * 0.99;
+				const windowH = window.innerHeight * 0.99;
+
+				scale = Math.min(windowW / naturalW, windowH / naturalH);
+				save = scale;
+				pointX = 0;
+				pointY = 0;
+				updateTransform(imgPleinEcran);
+			}
+		});
+
+		imgPleinEcran.addEventListener('dblclick', (e) => {
+			e.stopPropagation();
+			if (imgPleinEcran.classList.contains("zoomed")) {
+				imgPleinEcran.style.cursor = "";
+				resetZoom(imgPleinEcran);
+				activeImg = null;
+			}
+		});
+
+		modalZoom.addEventListener("click", (e) => {
+			if (e.target.closest(".twImgWrapper")) {
+				e.stopPropagation();
+				if (imgPleinEcran.classList.contains("zoomed")) {
+					if (suppressClick) return;
+					imgPleinEcran.style.cursor = "";
+					resetZoom(imgPleinEcran);
+					activeImg = null;
+				}
+			}
+
+			if (e.target !== e.currentTarget) return;
+			e.stopPropagation();
+			if (diapoInterval) {
+				arreterDiaporama();
+				return;
+			}
+			if (diapoGlobalInterval) {
+				arreterDiaporamaGlobal()
+				return;
+			}
+			btnFermerZoom.click()
+		});
+
+		imgPleinEcran.addEventListener("mousedown", (e) => {
+			if (!activeImg || !imgPleinEcran.classList.contains("zoomed")) return;
+			e.preventDefault();
+
+			if (scale > save) {
+				activeImg.style.cursor = "grab";
+				panning = true;
+				hasMoved = false;
+				startX = e.clientX - pointX;
+				startY = e.clientY - pointY;
+			}
+		});
+
+		imgPleinEcran.addEventListener("mousemove", (e) => {
+			if (!panning || !activeImg) return;
+			activeImg.style.cursor = "grabbing";
+			hasMoved = true;
+			pointX = e.clientX - startX;
+			pointY = e.clientY - startY;
+			updateTransform(activeImg);
+		});
+
+		imgPleinEcran.addEventListener("mouseup", () => {
+			if (panning && activeImg) {
+				panning = false;
+				if (hasMoved) {
+					suppressClick = true;
+					setTimeout(() => { suppressClick = false; }, 150);
+				}
+			}
+			if (activeImg) {
+				activeImg.style.cursor = "";
+			}
+		});
+
+		modalZoom.addEventListener('wheel', (e) => {
+			const img = e.target.closest('.twImgWrapper img.twImg');
+			if (!img || !img.classList.contains('zoomed')) return;
+
+			e.preventDefault();
+			activeImg = img;
+			const oldScale = scale;
+
+			scale += (e.deltaY < 0 ? 0.1 : -0.1);
+			scale = Math.min(Math.max(save, scale), 5);
+
+			if (scale === save) {
+				pointX = 0;
+				pointY = 0;
+			} else {
+				const zoomFactor = scale / oldScale;
+				const centerX = window.innerWidth / 2;
+				const centerY = window.innerHeight / 2;
+				const mouseX = e.clientX - centerX;
+				const mouseY = e.clientY - centerY;
+
+				pointX = mouseX - (mouseX - pointX) * zoomFactor;
+				pointY = mouseY - (mouseY - pointY) * zoomFactor;
+			}
+
+			updateTransform(activeImg);
+		}, { passive: false });
+
+		// --- ÉVÉNEMENTS TACTILES POUR LE DÉPLACEMENT SUR MOBILE ---
+		imgPleinEcran.addEventListener("touchstart", (e) => {
+			if (!activeImg || !imgPleinEcran.classList.contains("zoomed")) return;
+			if (e.touches.length === 1 && scale > save) { // Un seul doigt et image zoomée
+				panning = true;
+				hasMoved = false;
+				startX = e.touches[0].clientX - pointX;
+				startY = e.touches[0].clientY - pointY;
+			}
+		});
+
+		imgPleinEcran.addEventListener("touchmove", (e) => {
+			if (!panning || !activeImg || e.touches.length !== 1) return;
+			hasMoved = true;
+			pointX = e.touches[0].clientX - startX;
+			pointY = e.touches[0].clientY - startY;
+			updateTransform(activeImg);
+		});
+
+		imgPleinEcran.addEventListener("touchend", () => {
+			if (panning) {
+				panning = false;
+				if (hasMoved) {
+					suppressClick = true;
+					setTimeout(() => { suppressClick = false; }, 150);
+				}
+			}
+		});
+
+		(async function chargerDossierAuDemarrage() {
+			try {
+				infoStatut.textContent = "🔄 Recherche du cache précédent...";
+				try {
+					const imagesCache = await recupererImagesCache();
+					if (imagesCache && imagesCache.length > 0) {
+						infoStatut.textContent = `🔄 Chargement du cache... (${imagesCache.length} images)`;
+						await traiterDossierImages(imagesCache, false);
+						return
+					}
+				} catch (cacheError) {
+					console.error("Erreur lors du chargement du cache :", cacheError);
+				}
+
+				infoStatut.textContent = "🔄 Recherche du dossier précédent...";
+				const dirHandle = await recupererDossier();
+				if (!dirHandle || typeof dirHandle.queryPermission !== "function") {
+					infoStatut.textContent = "Veuillez sélectionner votre dossier d'images.";
+					loaderOverlay.classList.add("cache");
+					return;
+				}
+
+				const permission = await dirHandle.queryPermission({ mode: "read" });
+
+				if (permission === "granted") {
+					infoStatut.textContent = "🔍 Analyse du dossier en cours...";
+					const rawHandles = await getFileHandlesFromDirectory(dirHandle);
+
+					if (rawHandles && rawHandles.length > 0) {
+						await traiterDossierImages(rawHandles, true);
+						return;
+					}
+					infoStatut.textContent = "Aucune image trouvée dans le dossier.";
+					loaderOverlay.classList.add("cache");
+					await effacerDossier();
+					return;
+				} else {
+					infoStatut.textContent = `Le dossier "${dirHandle.name}" enregistré demande une nouvelle autorisation : veuillez le sélectionner à nouveau.`;
+					loaderOverlay.classList.add("cache");
+				}
+			} catch (err) {
+				loaderOverlay.classList.add("cache");
+				console.error("Erreur lors du chargement automatique :", err);
+			}
+		})();
+
+		function convertirImagesEnBackground() {
+			const images = adventDoors.querySelectorAll("li a img");
+
+			images.forEach(img => {
+				const imgSrc = img.src;
+				const lienParent = img.closest('a');
+
+				if (imgSrc && lienParent) {
+					lienParent.style.backgroundImage = `url('${imgSrc}')`;
+				}
+			});
+		}
+
+		document.getElementById("Print").addEventListener("click", () => {
+			window.print();
+		});
+
+		window.addEventListener("beforeprint", () => {
+			convertirImagesEnBackground();
+		});
+
+		// ============================================================
+		// MINI-GALERIE : SÉLECTION MANUELLE DE L'IMAGE D'UN JOUR
+		// L'attribution jour → nom de fichier reste dans le
+		// localStorage existant (calendrier_grille_AAAA_M) : le choix
+		// survit aux rechargements, les images étant relues depuis
+		// les handles du dossier ou du cache IndexedDB.
+		// ============================================================
+
+		const galerieOverlay = document.getElementById("galerieJour");
+		const galerieTitre = document.getElementById("galerieTitre");
+		const galerieInfo = document.getElementById("galerieInfo");
+		const galerieGrille = document.getElementById("galerieGrille");
+		const galerieFermerBouton = document.getElementById("galerieFermer");
+		const btnGaleriePleinEcran = document.getElementById("btnGaleriePleinEcran");
+		const btnRaccourcisGalerie = document.getElementById("btnRaccourcisGalerie");
+		const panneauRaccourcisGalerie = document.getElementById("panneauRaccourcisGalerie");
+		let jourGalerieActuel = null;
+		let urlsGalerie = [];
+
+
+		function fermerGalerie() {
+			galerieOverlay.classList.remove("visible");
+			panneauRaccourcisGalerie.classList.remove("visible");
+			galerieGrille.innerHTML = "";
+			apercuImage.removeAttribute("src");
+			urlsGalerie.forEach(url => URL.revokeObjectURL(url));
+			urlsGalerie = [];
+			jourGalerieActuel = null;
+			document.body.style.overflowY = "auto";
+		}
+
+		async function ouvrirGalerie(jour) {
+			if (!window.derniersHandlesCharges || window.derniersHandlesCharges.length === 0) {
+				infoStatut.textContent = "📂 Veuillez d'abord sélectionner ou glisser un dossier d'images.";
+				return;
+			}
+			const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
+
+			if (lien.classList.contains("disabled")) {
+				toast(`🚫 ${lien.title} est encore dans le futur : le changement d'image reste indisponible.`, "warning");
+				return;
+			}
+
+			jourGalerieActuel = jour;
+			document.body.style.overflowY = "hidden";
+
+			const storageKeyGrille = `calendrier_grille_${anneeAffilee}_${moisAffiche + 1}`;
+			const attribution = JSON.parse(localStorage.getItem(storageKeyGrille)) || {};
+			const nomActuel = attribution[`jour_${jour}`];
+
+			const dateJour = new Date(anneeAffilee, moisAffiche, jour);
+			const ferieGalerie = trouverJourFerie(anneeAffilee, moisAffiche, jour);
+			const repereGalerie = ferieGalerie ? null : trouverJoursReperes(anneeAffilee, moisAffiche, jour);
+			const libelleGalerie = ferieGalerie
+				? ` <span style="color:#c084fc;font-weight:bold;">• ${ferieGalerie.nom}</span>`
+				: (repereGalerie ? ` <span style="color:#fbbf24;">• ${repereGalerie}</span>` : "");
+			galerieTitre.innerHTML = `${joursNoms[dateJour.getDay()]} ${jour} ${moisNoms[moisAffiche]} ${anneeAffilee}${libelleGalerie} — choisir l'image`;
+			galerieInfo.textContent = `${window.derniersHandlesCharges.length} images — cliquez sur une vignette pour l'attribuer à ce jour.`;
+			galerieGrille.innerHTML = "";
+
+			const handlesTriees = [...window.derniersHandlesCharges]
+				.sort((a, b) => a.name.localeCompare(b.name));
+			const vignettes = [];
+
+			for (const handle of handlesTriees) {
+                const bouton = document.createElement("button");
+                bouton.type = "button";
+                bouton.className = "galerie-item" + (handle.name === nomActuel ? " selectionne" : "");
+                bouton.title = `Choisir « ${handle.name} »`;
+                const img = document.createElement("img");
+                img.loading = "lazy";
+                img.alt = handle.name;
+                bouton.appendChild(img);
+
+                // Bouton d'agrandissement (la vignette reste cliquable pour choisir)
+                const zoom = document.createElement("span");
+                zoom.className = "galerie-zoom";
+                zoom.textContent = "🔍";
+                zoom.title = "Agrandir l'image";
+                zoom.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    ouvrirApercu(handle, img, bouton);
+                });
+                bouton.appendChild(zoom);
+
+                bouton.addEventListener("click", () => {
+                    attribuerImageAuJour(jour, handle.name, bouton);
+                });
+                vignettes.push({ handle, img });
+                galerieGrille.appendChild(bouton);
+            }
+
+			galerieOverlay.classList.add("visible");
+
+			const selection = galerieGrille.querySelector(".selectionne");
+			if (selection) selection.scrollIntoView({ block: "center" });
+
+			// Chargement des vignettes en parallèle
+			await Promise.all(vignettes.map(async ({ handle, img }) => {
+				try {
+					const file = await handle.getFile();
+					const url = URL.createObjectURL(file);
+					urlsGalerie.push(url);
+					img.src = url;
+				} catch (e) {
+					// Fichier illisible : vignette vide mais reste sélectionnable
+				}
+			}));
+		}
+
+		async function attribuerImageAuJour(jour, nomFichier, boutonClique) {
+			const storageKeyGrille = `calendrier_grille_${anneeAffilee}_${moisAffiche + 1}`;
+			const attribution = JSON.parse(localStorage.getItem(storageKeyGrille)) || {};
+			attribution[`jour_${jour}`] = nomFichier;
+			localStorage.setItem(storageKeyGrille, JSON.stringify(attribution));
+
+			// Mise à jour immédiate de la case du calendrier
+			const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
+			if (lien) {
+				const imgElement = lien.querySelector("img");
+				const handle = window.derniersHandlesCharges.find(h => h.name === nomFichier);
+				if (imgElement && handle) {
+					try {
+						const file = await handle.getFile();
+						if (imgElement.dataset.objectUrl) {
+							URL.revokeObjectURL(imgElement.dataset.objectUrl);
+						}
+						const objectUrl = URL.createObjectURL(file);
+					tracerUrlGrille(objectUrl);
+						imgElement.src = objectUrl;
+						imgElement.dataset.objectUrl = objectUrl;
+						imgElement.ariaLabel = nomFichier;
+						imgElement.style.display = "block";
+						lien.style.backgroundImage = `url('${objectUrl}')`;
+					} catch (e) {
+						// Ignore : l'ancienne image restera affichée jusqu'au rechargement
+					}
+				}
+			}
+
+			galerieGrille.querySelectorAll(".galerie-item").forEach(b => b.classList.remove("selectionne"));
+			boutonClique.classList.add("selectionne");
+			galerieInfo.textContent = `✅ « ${nomFichier} » attribué au jour ${jour}.`;
+		}
+
+		galerieFermerBouton.addEventListener("click", fermerGalerie);
+		galerieOverlay.addEventListener("click", (e) => {
+			if (e.target === galerieOverlay) fermerGalerie();
+		});
+
+		btnRaccourcisGalerie.addEventListener("click", (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			panneauRaccourcisGalerie.classList.toggle("visible");
+		});
+
+		btnGaleriePleinEcran.addEventListener("click", () => {
+			if (jourGalerieActuel === null) return;
+			const lien = adventDoors.querySelector(`a[data-jour="${jourGalerieActuel}"]`);
+			if (!lien) return;
+			if (lien.classList.contains("disabled")) {
+				galerieInfo.textContent = `🚫 ${lien.title} est encore dans le futur : le plein écran reste indisponible.`;
+				return;
+			}
+			const jour = jourGalerieActuel;
+			const titreJour = lien.title;
+			fermerGalerie();
+			afficherImageJour(jour, titreJour);
+		});
+
+        // ============================================================
+        // APERÇU AGRANDI D'UNE VIGNETTE DE LA GALERIE
+        // ============================================================
+
+        const galerieApercu = document.getElementById("galerieApercu");
+        const apercuImage = document.getElementById("apercuImage");
+        const apercuChoisir = document.getElementById("apercuChoisir");
+        const apercuFermer = document.getElementById("apercuFermer");
+        const btnRaccourcisApercu = document.getElementById("btnRaccourcisApercu");
+        const panneauRaccourcisApercu = document.getElementById("panneauRaccourcisApercu");
+        let apercuHandle = null;
+        let apercuBouton = null;
+
+        async function ouvrirApercu(handle, img, bouton) {
+            apercuHandle = handle;
+            apercuBouton = bouton;
+
+            // La vignette n'est peut-être pas encore chargée (lazy) :
+            // on va la chercher directement si besoin
+            let src = img.src;
+            if (!src) {
+                try {
+                    const file = await handle.getFile();
+                    const url = URL.createObjectURL(file);
+                    urlsGalerie.push(url);
+                    img.src = url;
+                    src = url;
+                } catch (e) {
+                    galerieInfo.textContent = "❌ Impossible d'afficher cette image.";
+                    return;
+                }
+            }
+
+            apercuImage.src = src;
+            apercuImage.alt = handle.name;
+            apercuChoisir.textContent = `✅ Choisir « ${handle.name} »`;
+            galerieApercu.classList.add("visible");
+        }
+
+        function fermerApercu() {
+            galerieApercu.classList.remove("visible");
+            panneauRaccourcisApercu.classList.remove("visible");
+            apercuImage.src = "";
+            apercuHandle = null;
+            apercuBouton = null;
+        }
+
+        apercuChoisir.addEventListener("click", () => {
+            if (apercuHandle && apercuBouton && jourGalerieActuel !== null) {
+                attribuerImageAuJour(jourGalerieActuel, apercuHandle.name, apercuBouton);
+            }
+            fermerApercu();
+        });
+
+        apercuFermer.addEventListener("click", fermerApercu);
+        galerieApercu.addEventListener("click", (e) => {
+            if (e.target === galerieApercu) fermerApercu();
+        });
+
+        btnRaccourcisApercu.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            panneauRaccourcisApercu.classList.toggle("visible");
+        });
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "?" || e.key === "h" || e.key === "H") {
+                if (galerieApercu.classList.contains("visible")) {
+                    panneauRaccourcisApercu.classList.toggle("visible");
+                } else if (galerieOverlay.classList.contains("visible")) {
+                    panneauRaccourcisGalerie.classList.toggle("visible");
+                }
+                return;
+            }
+            if (e.key !== "Escape") return;
+            if (galerieApercu.classList.contains("visible")) {
+                fermerApercu();
+                return;
+            }
+            if (galerieOverlay.classList.contains("visible")) {
+                fermerGalerie();
+            }
+        });
+
+		// ============================================================
+		// CAPTURE NATURELLE PAR LE NAVIGATEUR (SVG foreignObject)
+		// Le calendrier est cloné dans un SVG et c'est le vrai moteur
+		// de rendu de Chrome qui le dessine dans le canvas : bordures,
+		// textes et photos sont rendus exactement comme à l'écran.
+		// Aucune bibliothèque externe n'est nécessaire (html2canvas
+		// a été retiré). Les images sont intégrées en data URLs,
+		// réduites proprement par étapes de 2.
+		// FACTEUR_EXPORT règle la taille du PNG final :
+		//   1 = 1920x1080 (défaut) ; 2 = 3840x2160
+		// ============================================================
+		const FACTEUR_EXPORT = 2; // 1 = PNG final 1920x1080 ; 2 = PNG final 3840x2160
+		const NETTETE_ACTIVEE = true; // renforcement léger après capture
+		const FORCE_NETTETE = 0.35; // 0.3 à 0.5 ; plus haut = contours plus marqués
+		const RAYON_NETTETE = 1; // rayon du flou en pixels
+		const TAILLE_IMAGE_JOUR = 512; // résolution max des photos des cases intégrées dans le SVG
+		const TAILLE_IMAGE_FOND = 3840; // résolution max des grands fonds (page, grille, côtés)
+
+		// Charge un blob: en image et renvoie une data URL, réduite
+		// proprement par étapes de 2 si elle dépasse tailleMax.
+		// Tout passe par <img> + canvas : les blob: s'affichent
+		// toujours, aucun accès réseau n'est requis.
+		function blobVersDataUrlReduit(url, tailleMax) {
+			return new Promise(resolve => {
+				const img = new Image();
+				img.onload = () => {
+					try {
+						let canvas = document.createElement("canvas");
+						canvas.width = img.naturalWidth;
+						canvas.height = img.naturalHeight;
+						canvas.getContext("2d").drawImage(img, 0, 0);
+
+						// Réductions successives par 2, en conservant
+						// TOUJOURS les proportions (aucune déformation)
+						while (Math.floor(canvas.width / 2) >= tailleMax && Math.floor(canvas.height / 2) >= tailleMax) {
+							const etape = document.createElement("canvas");
+							etape.width = Math.floor(canvas.width / 2);
+							etape.height = Math.floor(canvas.height / 2);
+							const ctxEtape = etape.getContext("2d");
+							ctxEtape.imageSmoothingEnabled = true;
+							ctxEtape.imageSmoothingQuality = "high";
+							ctxEtape.drawImage(canvas, 0, 0, etape.width, etape.height);
+							canvas = etape;
+						}
+
+						// Dernière réduction proportionnelle si nécessaire
+						if (Math.max(canvas.width, canvas.height) > tailleMax) {
+							const rapport = tailleMax / Math.max(canvas.width, canvas.height);
+							const etape = document.createElement("canvas");
+							etape.width = Math.round(canvas.width * rapport);
+							etape.height = Math.round(canvas.height * rapport);
+							const ctxEtape = etape.getContext("2d");
+							ctxEtape.imageSmoothingEnabled = true;
+							ctxEtape.imageSmoothingQuality = "high";
+							ctxEtape.drawImage(canvas, 0, 0, etape.width, etape.height);
+							canvas = etape;
+						}
+
+						resolve(canvas.toDataURL("image/jpeg", 0.92));
+					} catch (e) {
+						resolve("");
+					}
+				};
+				img.onerror = () => resolve("");
+				img.src = url;
+			});
+		}
+
+		// Remplace tous les blob: du clone par des data URLs intégrables.
+		// Important : toute référence blob: restante dans le SVG ferait
+		// marquer le canvas par le navigateur ("tainted") et bloquerait
+		// l'export. Pour les éléments cachés dans l'export, on retire
+		// donc simplement la référence.
+		async function integrerImages(clone) {
+			// Images <img>
+			await Promise.all(Array.from(clone.querySelectorAll("img")).map(async (img) => {
+				img.removeAttribute("loading");
+				const src = img.getAttribute("src") || "";
+				if (!src) return;
+				const cache = img.closest("#adventDoors");
+				if (cache) { img.removeAttribute("src"); return; }
+				if (src.startsWith("data:")) return;
+				if (!src.startsWith("blob:")) { img.removeAttribute("src"); return; }
+				try {
+					const taille = (img.id === "one" || img.id === "two" || img.id === "three") ? TAILLE_IMAGE_FOND : TAILLE_IMAGE_JOUR;
+					const dataUrl = await blobVersDataUrlReduit(src, taille);
+					if (dataUrl) img.src = dataUrl; else img.removeAttribute("src");
+				} catch (e) {
+					img.removeAttribute("src");
+				}
+			}));
+
+			// Fonds inline (photos des jours, fond de grille, etc.)
+			const elementsAvecFond = Array.from(clone.querySelectorAll("*"))
+                .filter(el => /blob:/.test(el.style.backgroundImage || ""));
+
+            await Promise.all(elementsAvecFond.map(async (el) => {
+                const fond = el.style.backgroundImage || "";
+                const blob = fond.match(/blob:[^')"]+/);
+                if (!blob) return; // ⬅️ return au lieu de continue
+
+                try {
+                    const taille = (el.tagName === "A" && el.dataset.jour) ? TAILLE_IMAGE_JOUR : TAILLE_IMAGE_FOND;
+                    const dataUrl = await blobVersDataUrlReduit(blob[0], taille);
+                    if (dataUrl) {
+                        el.style.backgroundImage = fond.replace(blob[0], dataUrl);
+                    } else {
+                        el.style.removeProperty("background-image");
+                    }
+                } catch (e) {
+                    el.style.removeProperty("background-image");
+                }
+            }));
+
+			// Sécurité : retire toute dernière référence blob: qui
+			// resterait dans un attribut (ex : data-object-url), car
+			// Chrome bloque l'export dès qu'une référence externe
+			// traîne dans le SVG
+			for (const el of Array.from(clone.querySelectorAll("*"))) {
+				for (const attribut of Array.from(el.attributes)) {
+					if (attribut.name !== "style" && attribut.value.includes("blob:")) {
+						el.removeAttribute(attribut.name);
+					}
+				}
+			}
+		}
+
+		// Capture par le navigateur : clone de la page dans un SVG
+		async function capturerViaSVG() {
+			// 1. Clone de la page (le clone devient un div #calendrier,
+			//    ce qui lui donne exactement les styles du mode export)
+			const clone = document.createElement("div");
+			clone.id = "calendrier";
+			clone.innerHTML = document.body.innerHTML;
+			clone.querySelectorAll("script, .alerte-navigateur, .loader-overlay, #btnToggleCalendar, .menu, .twAudessus, .galerie-overlay, .galerie-apercu, .confirm-overlay, #toastContainer").forEach(s => s.remove());
+
+			// 2. Styles du <body> recopiés en inline (le clone n'est
+			//    plus un <body>, ses règles CSS ne s'appliquent pas)
+			const styleBody = getComputedStyle(document.body);
+			clone.style.margin = "0";
+			clone.style.backgroundColor = styleBody.backgroundColor;
+			clone.style.backgroundImage = document.body.style.backgroundImage;
+			clone.style.backgroundSize = styleBody.backgroundSize;
+			clone.style.backgroundPosition = styleBody.backgroundPosition;
+			clone.style.backgroundRepeat = styleBody.backgroundRepeat;
+			clone.style.fontFamily = styleBody.fontFamily;
+			clone.style.color = styleBody.color;
+			clone.style.textAlign = styleBody.textAlign;
+			clone.style.lineHeight = styleBody.lineHeight;
+
+			// 3. Intégration des images en data URLs
+			await integrerImages(clone);
+			const blobFond = (clone.style.backgroundImage || "").match(/blob:[^')"]+/);
+			if (blobFond) {
+				const dataUrl = await blobVersDataUrlReduit(blobFond[0], TAILLE_IMAGE_FOND);
+				if (dataUrl) {
+					clone.style.backgroundImage = clone.style.backgroundImage.replace(blobFond[0], dataUrl);
+				} else {
+					clone.style.removeProperty("background-image");
+				}
+			}
+
+			// 4. Styles CSS de la page embarqués dans le clone
+			const styleEmbarque = document.createElement("style");
+			styleEmbarque.textContent = Array.from(document.querySelectorAll("style")).map(s => s.textContent).join("\n");
+			clone.insertBefore(styleEmbarque, clone.firstChild);
+
+			// 5. Le tout est placé dans un SVG (foreignObject)
+			const NS = "http://www.w3.org/2000/svg";
+			const svg = document.createElementNS(NS, "svg");
+			svg.setAttribute("xmlns", NS);
+			svg.setAttribute("width", String(1920 * FACTEUR_EXPORT));
+			svg.setAttribute("height", String(1080 * FACTEUR_EXPORT));
+			svg.setAttribute("viewBox", "0 0 1920 1080");
+
+			const zoneEtrangere = document.createElementNS(NS, "foreignObject");
+			zoneEtrangere.setAttribute("x", "0");
+			zoneEtrangere.setAttribute("y", "0");
+			zoneEtrangere.setAttribute("width", "1920");
+			zoneEtrangere.setAttribute("height", "1080");
+			zoneEtrangere.appendChild(clone);
+			svg.appendChild(zoneEtrangere);
+
+			const chaineSVG = new XMLSerializer().serializeToString(svg);
+			if (chaineSVG.includes("blob:")) {
+				console.warn("Le SVG contient encore des références blob: — l'export pourrait être bloqué");
+			}
+
+			// 6. Le navigateur dessine le SVG dans le canvas.
+			//    Le SVG est chargé en data URL (comme html-to-image) :
+			//    chargé via blob:, il peut faire marquer le canvas
+			//    comme "tainted" par le navigateur.
+			const urlSVG = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(chaineSVG);
+			const image = new Image();
+			await new Promise((resolve, reject) => {
+				image.onload = resolve;
+				image.onerror = () => reject(new Error("Rendu SVG impossible"));
+				image.src = urlSVG;
+			});
+
+			const canvas = document.createElement("canvas");
+			canvas.width = 1920 * FACTEUR_EXPORT;
+			canvas.height = 1080 * FACTEUR_EXPORT;
+			// willReadFrequently dès la création : le renforcement lit
+			// ensuite les pixels sans avertissement ni ralentissement
+			canvas.getContext("2d", { willReadFrequently: true }).drawImage(image, 0, 0, canvas.width, canvas.height);
+			return canvas;
+		}
+
+		async function capturerCalendrierHD() {
+			let canvas;
+			try {
+				canvas = await capturerViaSVG();
+				// Vérifie que le canvas est exploitable (pas de données interdites)
+				canvas.getContext("2d").getImageData(0, 0, 1, 1);
+			} catch (e) {
+				toast(
+					"L'export a échoué : " + (e && e.message ? e.message : e),
+					"error",
+					5000
+				);
+				throw e;
+			}
+
+			// Renforcement léger
+			if (NETTETE_ACTIVEE) {
+				try {
+					appliquerNettete(canvas, FORCE_NETTETE, RAYON_NETTETE);
+				} catch (e) {
+					console.warn("Renforcement ignoré :", e);
+				}
+			}
+
+			return canvas;
+		}
+
+		// Téléchargement du canvas via toBlob (plus fiable qu'une data URL en 4K)
+		function telechargerCanvas(canvas, nomFichier) {
+			try {
+				if (canvas.toBlob) {
+					canvas.toBlob(blob => {
+						if (!blob) {
+							const lien = document.createElement("a");
+							lien.download = nomFichier;
+							lien.href = canvas.toDataURL("image/png");
+							lien.click();
+							return;
+						}
+						const url = URL.createObjectURL(blob);
+						const lien = document.createElement("a");
+						lien.download = nomFichier;
+						lien.href = url;
+						lien.click();
+						setTimeout(() => URL.revokeObjectURL(url), 10000);
+					}, "image/png");
+				} else {
+					const lien = document.createElement("a");
+					lien.download = nomFichier;
+					lien.href = canvas.toDataURL("image/png");
+					lien.click();
+				}
+			} catch (e) {
+				toast("Export impossible : " + e.message, "error", 5000);
+			}
+		}
+
+		// ============================================================
+		// EXPORT ZIP (archive native, méthode "store", sans bibliothèque)
+		// Les PNG étant déjà compressés, le stockage direct est optimal.
+		// ============================================================
+
+		const CRC32_TABLE = (() => {
+			const table = new Uint32Array(256);
+			for (let n = 0; n < 256; n++) {
+				let c = n;
+				for (let k = 0; k < 8; k++) {
+					c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+				}
+				table[n] = c >>> 0;
+			}
+			return table;
+		})();
+
+		function crc32(donnees) {
+			let crc = 0xFFFFFFFF;
+			for (let i = 0; i < donnees.length; i++) {
+				crc = (crc >>> 8) ^ CRC32_TABLE[(crc ^ donnees[i]) & 0xFF];
+			}
+			return (crc ^ 0xFFFFFFFF) >>> 0;
+		}
+
+		async function blobVersUint8(blob) {
+			return new Uint8Array(await blob.arrayBuffer());
+		}
+
+		// Date DOS fixe (01/01/2026) inscrite dans les entrées de l'archive
+		const DOS_DATE = ((anneeAffilee - 1980) << 9) | (1 << 5) | 1;
+		const DOS_TIME = (12 << 11);   // 12h00
+
+		// Assemble les fichiers [{nom, blob}] en une archive ZIP unique
+		async function creerZip(fichiers) {
+			const morceaux = [];
+			const entetesCentrales = [];
+			let offset = 0;
+			const encodeur = new TextEncoder();
+
+			for (const fichier of fichiers) {
+				const contenu = await blobVersUint8(fichier.blob);
+				const nomBytes = encodeur.encode(fichier.nom);
+				const crc = crc32(contenu);
+
+				// En-tête locale du fichier (30 octets)
+				const locale = new DataView(new ArrayBuffer(30));
+				locale.setUint32(0, 0x04034b50, true);  // signature
+				locale.setUint16(4, 20, true);           // version minimale
+				locale.setUint16(6, 0x0800, true);        // noms de fichiers en UTF-8
+				locale.setUint16(8, 0, true);             // méthode : stockage direct
+				locale.setUint16(10, DOS_TIME, true);     // heure
+				locale.setUint16(12, DOS_DATE, true);     // date
+				locale.setUint32(14, crc, true);
+				locale.setUint32(18, contenu.length, true);
+				locale.setUint32(22, contenu.length, true);
+				locale.setUint16(26, nomBytes.length, true);
+				locale.setUint16(28, 0, true);
+				morceaux.push(new Uint8Array(locale.buffer), nomBytes, contenu);
+
+				// En-tête central (46 octets)
+				const centrale = new DataView(new ArrayBuffer(46));
+				centrale.setUint32(0, 0x02014b50, true);
+				centrale.setUint16(4, 20, true);
+				centrale.setUint16(6, 20, true);
+				centrale.setUint16(8, 0x0800, true);
+				centrale.setUint16(10, 0, true);
+				centrale.setUint16(12, DOS_TIME, true);
+				centrale.setUint16(14, DOS_DATE, true);
+				centrale.setUint32(16, crc, true);
+				centrale.setUint32(20, contenu.length, true);
+				centrale.setUint32(24, contenu.length, true);
+				centrale.setUint16(28, nomBytes.length, true);
+				centrale.setUint32(42, offset, true);
+				entetesCentrales.push(new Uint8Array(centrale.buffer), nomBytes);
+
+				offset += 30 + nomBytes.length + contenu.length;
+			}
+
+			// Fin de l'archive (End Of Central Directory, 22 octets)
+			const tailleCentrale = entetesCentrales.reduce((total, m) => total + m.length, 0);
+			const fin = new DataView(new ArrayBuffer(22));
+			fin.setUint32(0, 0x06054b50, true);
+			fin.setUint16(8, fichiers.length, true);
+			fin.setUint16(10, fichiers.length, true);
+			fin.setUint32(12, tailleCentrale, true);
+			fin.setUint32(16, offset, true);
+
+			return new Blob([...morceaux, ...entetesCentrales, new Uint8Array(fin.buffer)], { type: "application/zip" });
+		}
+
+		function canvasVersBlob(canvas) {
+			return new Promise((resolve, reject) => {
+				if (!canvas.toBlob) {
+					reject(new Error("toBlob non supporté par le navigateur"));
+					return;
+				}
+				canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("toBlob a renvoyé null")), "image/png");
+			});
+		}
+
+		function telechargerBlob(blob, nomFichier) {
+			const url = URL.createObjectURL(blob);
+			const lien = document.createElement("a");
+			lien.download = nomFichier;
+			lien.href = url;
+			lien.click();
+			setTimeout(() => URL.revokeObjectURL(url), 10000);
+		}
+
+		// net = original + force * (original - flou)
+		function appliquerNettete(canvas, force, rayon) {
+			const largeur = canvas.width;
+			const hauteur = canvas.height;
+			const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+			// Version floue de l'image (le flou du canvas est accéléré par le GPU)
+			const canvasFlou = document.createElement("canvas");
+			canvasFlou.width = largeur;
+			canvasFlou.height = hauteur;
+			const ctxFlou = canvasFlou.getContext("2d");
+			ctxFlou.filter = `blur(${rayon}px)`;
+			ctxFlou.drawImage(canvas, 0, 0);
+			ctxFlou.filter = "none";
+
+			const original = ctx.getImageData(0, 0, largeur, hauteur);
+			const flou = ctxFlou.getImageData(0, 0, largeur, hauteur);
+			const sortie = original;
+
+			for (let i = 0; i < original.data.length; i += 4) {
+				for (let c = 0; c < 3; c++) {
+					const ecart = original.data[i + c] - flou.data[i + c];
+					sortie.data[i + c] = Math.max(0, Math.min(255, original.data[i + c] + force * ecart));
+				}
+			}
+			ctx.putImageData(sortie, 0, 0);
+		}
+
+		document.getElementById("SaveImage").addEventListener("click", async () => {
+			convertirImagesEnBackground();
+			document.body.id = "calendrier";
+			await new Promise(resolve =>
+				requestAnimationFrame(() => {
+					requestAnimationFrame(resolve);
+				})
+			);
+
+			await new Promise(resolve => setTimeout(resolve, 150));
+
+			try {
+				const canvas = await capturerCalendrierHD();
+				telechargerCanvas(canvas, `${titre}.png`);
+
+			} catch (err) {
+				console.error("Erreur lors de l'export :", err);
+				infoStatut.textContent = "❌ Impossible de générer l'image.";
+			} finally {
+				document.body.removeAttribute("id");
+			}
+		});
+
+		document.getElementById("SaveAnnee").addEventListener("click", async () => {
+			const moisInitial = moisAffiche;
+			const anneeInitiale = anneeAffilee;
+			const imagesZip = [];
+
+			// 🆕 On pose la question AVANT de lancer la génération
+			const creerPlancheA4 = await confirmToast(
+				"Voulez-vous aussi créer une image A4 horizontale<br>regroupant les 12 mois de l'année ?"
+			);
+
+			// 🆕 Planche A4 horizontale (297×210 mm à 300 DPI)
+			const A4_L = 3508, A4_H = 2480;
+			let planche = null, ctxPlanche = null, total = null;
+			if (creerPlancheA4) {
+				total = await confirmToast(
+					"Choix du rendu de la planche A4 :<br><br>" +
+					"✅ OUI = mois complets avec les photos latérales (vignettes larges)<br>" +
+					"❌ NON = calendriers seuls, rognés aux bords de la grille (plus grands et lisibles)"
+				);
+				planche = document.createElement("canvas");
+				planche.width = A4_L;
+				planche.height = A4_H;
+				ctxPlanche = planche.getContext("2d");
+				ctxPlanche.fillStyle = "#24283a"; // même fond que votre page
+				ctxPlanche.fillRect(0, 0, A4_L, A4_H);
+			}
+
+			try {
+				for (let m = 0; m < 12; m++) {
+					moisAffiche = m;
+					infoStatut.textContent = `Génération de l'image pour ${moisNoms[m]} ${anneeAffilee}...`;
+
+					construireGrilleCalendrier();
+
+					if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
+						await traiterDossierImages(window.derniersHandlesCharges, false);
+						convertirImagesEnBackground();
+					}
+
+					document.body.id = "calendrier";
+
+					await new Promise(resolve =>
+						requestAnimationFrame(() => {
+							requestAnimationFrame(resolve);
+						})
+					);
+
+					await new Promise(resolve => setTimeout(resolve, 150));
+
+					// 🆕 Mesure de la zone utile, déclarée à portée de la boucle
+					const rectUtile = document.querySelector(".-content").getBoundingClientRect();
+					const rectBody = document.body.getBoundingClientRect();
+					const zone = {
+						x: (rectUtile.left - rectBody.left) * FACTEUR_EXPORT,
+						y: (rectUtile.top - rectBody.top) * FACTEUR_EXPORT,
+						l: rectUtile.width * FACTEUR_EXPORT,
+						h: rectUtile.height * FACTEUR_EXPORT
+					};
+					zone.x = Math.max(0, zone.x);
+					zone.y = Math.max(0, zone.y);
+					zone.l = Math.max(0, Math.min(zone.l, 1920 * FACTEUR_EXPORT - zone.x));
+					zone.h = Math.max(0, Math.min(zone.h, 1080 * FACTEUR_EXPORT - zone.y));
+
+					const canvas = await capturerCalendrierHD();
+					const blobMois = await canvasVersBlob(canvas);
+					imagesZip.push({ nom: `${String(m + 1).padStart(2, "0")} - ${titre}.png`, blob: blobMois });
+					infoStatut.textContent = `🖼️ ${titre} capturé (${m + 1}/12) — préparation de l'archive ZIP...`;
+
+					// 🆕 Dessin du mois dans sa cellule de la planche A4 (3 col × 4 lignes)
+					if (planche) {
+						const marge = 10, gouttiere = 10; // 60 et 40
+						const zoneUtileL = A4_L - 2 * marge;
+						const zoneUtileH = A4_H - 2 * marge;
+						let nbCol = 4;   // 4 colonnes
+						let nbLignes = 3; // 3 lignes
+						if (total) {
+							nbCol = 3;   // 3 colonnes
+							nbLignes = 4; // 4 lignes
+						}
+						const celluleL = (zoneUtileL - (nbCol - 1) * gouttiere) / nbCol;
+						const celluleH = (zoneUtileH - (nbLignes - 1) * gouttiere) / nbLignes;
+
+						const col = m % nbCol;
+						const ligne = Math.floor(m / nbCol);
+						const x = marge + col * (celluleL + gouttiere);
+						const y = marge + ligne * (celluleH + gouttiere);
+
+						const src = total
+							? { x: 0, y: 0, l: canvas.width, h: canvas.height }
+							: zone;
+
+						const rapport = Math.min(celluleL / src.l, celluleH / src.h);
+						const largeurDessin = src.l * rapport;
+						const hauteurDessin = src.h * rapport;
+
+						ctxPlanche.drawImage(
+							canvas,
+							src.x, src.y, src.l, src.h,
+							x + (celluleL - largeurDessin) / 2,
+							y + (celluleH - hauteurDessin) / 2,
+							largeurDessin, hauteurDessin
+						);
+					}
+
+					canvas.width = 1;
+					canvas.height = 1;
+
+					console.log(
+						`Mois ${m + 1}/12 généré :`,
+						`${(blobMois.size / 1024 / 1024).toFixed(1)} Mo`
+					);
+
+					//await new Promise(resolve => setTimeout(resolve, 500));
+				}
+
+				infoStatut.textContent = "🗜️ Compression de l'archive ZIP...";
+
+				if (planche) {
+					const blobPlanche = await canvasVersBlob(planche);
+					imagesZip.unshift({ nom: `Calendrier ${anneeAffilee}.png`, blob: blobPlanche });
+				}
+
+				const archiveZip = await creerZip(imagesZip);
+				telechargerBlob(archiveZip, `Calendrier ${anneeAffilee}.zip`);
+
+				infoStatut.textContent = creerPlancheA4
+					? "✅ Année générée : archive ZIP des 12 mois + planche A4 téléchargées !"
+					: "✅ Année générée : archive ZIP des 12 mois téléchargée !";
+			} catch (err) {
+				console.error("Erreur lors de la génération annuelle :", err);
+				infoStatut.textContent = "Erreur lors de la génération de l'année.";
+			} finally {
+				// Restauration du mois et de l'année initiaux
+				moisAffiche = moisInitial;
+				anneeAffilee = anneeInitiale;
+				construireGrilleCalendrier();
+				if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
+					await traiterDossierImages(window.derniersHandlesCharges, false);
+				}
+				document.body.removeAttribute("id");
+				loaderOverlay.classList.add("cache");
+				planche = null;
+				ctxPlanche = null;
+			}
+		});
+
+		const observer = new MutationObserver((mutationsList, observer) => {
+			for (const mutation of mutationsList) {
+				// Vérifier si le type de modification concerne le texte ou les enfants
+				if (mutation.type === 'childList' || mutation.type === 'characterData') {
+					//console.log('Le contenu a changé ! Nouveau texte :', infoStatut.textContent);
+					toast(infoStatut.innerHTML)
+				}
+			}
+		});
+
+		// 3. Lancer l'observation sur l'élément
+		observer.observe(infoStatut, {
+			childList: true,     // Surveille l'ajout/suppression de nœuds enfants
+			characterData: true, // Surveille les modifications directes du texte (textContent)
+			subtree: false        // Surveille aussi les descendants si nécessaire
+		});
+
+		if ("serviceWorker" in navigator && location.protocol !== "file:") {
+			navigator.serviceWorker.register("./sw.js").catch(() => {});
+		}
+	</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+{
+	"id": "./calendrier random.html",
+    "name": "Mon Calendrier",
+	"x-editor": "Éric Rousseau 😊",
+    "short_name": "Calendrier",
+    "description": "Mon calendrier mensuel personnalisé avec photos",
+    "start_url": "./calendrier random.html",
+    "display": "minimal-ui",
+    "background_color": "#24283a",
+    "theme_color": "#24283a",
+	"developer": {
+        "name": "Éric Rousseau"
+    },
+    "icons": [
+        {
+            "src": "calendrier icone-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        }
+    ],
+    "protocol_handlers": [
+        {
+            "protocol": "web+calendrier",
+            "url": "./calendrier random.html?url=%s"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "screenshot-desktop.png",
+            "sizes": "1920x1080",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Mon Calendrier sur ordinateur"
+        },
+        {
+            "src": "screenshot-mobile.png",
+            "sizes": "1080x1920",
+            "type": "image/png",
+            "label": "Mon Calendrier sur mobile"
+        }
+    ]
+}
