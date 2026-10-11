@@ -3869,7 +3869,7 @@
 		window.addEventListener("popstate", () => {
 			// Si le retour arrière ramène une ancre de modal, on la purge
 			if (window.location.hash === "#modalZoom") {
-				window.location.hash = "#adventDoors";
+				window.location.hash = "#";
 				history.replaceState(null, "", "#adventDoors");
 			}
 		});
