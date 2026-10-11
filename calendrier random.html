@@ -3867,12 +3867,7 @@
 		});
 		
 		window.addEventListener("popstate", () => {
-			// Si le retour arrière ramène une ancre de modal, on la purge
-			if (window.location.hash === "#modalZoom") {
-				history.replaceState(null, "", "#adventDoors");
-				window.location.hash = "";
-				location.reload();
-			}
+			history.replaceState(null, "", "#adventDoors");
 		});
 
 		//- window.addEventListener("hashchange", () => {
