@@ -3865,6 +3865,14 @@
 			history.replaceState(null, "", "#adventDoors");
 			setTimeout(() => { imgPleinEcran.style.display = "none";imgPleinEcran.removeAttribute("src"); }, 500);
 		});
+		
+		window.addEventListener("popstate", () => {
+			// Si le retour arrière ramène une ancre de modal, on la purge
+			if (window.location.hash === "#modalZoom") {
+				window.location.hash = "#adventDoors";
+				history.replaceState(null, "", "#adventDoors");
+			}
+		});
 
 		//- window.addEventListener("hashchange", () => {
 			// if (!window.location.hash) {
