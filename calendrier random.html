@@ -2645,6 +2645,7 @@
 				adventDoors.appendChild(li);
 			}
 			window.location.hash = "#adventDoors";
+			history.replaceState(null, "", "#adventDoors");
 		}
 
 		construireGrilleCalendrier()
@@ -3206,6 +3207,7 @@
 
 			numeroJourImage.innerHTML = `Jour<br> <span style="font-size: 10px; opacity: 0.8;">${jour}/${totalValides}</span>`;
 			window.location.hash = "modalZoom";
+			history.replaceState(null, "", "#modalZoom");
 
 			let precedente = false;
 			for (let j = jour - 1; j >= 1; j--) {
@@ -3546,6 +3548,7 @@
 
 		async function attendrePleinEcran() {
 			window.location.hash = "modalZoom";
+			history.replaceState(null, "", "#modalZoom");
 			await new Promise(resolve => requestAnimationFrame(resolve));
 			if (!document.fullscreenElement) {
 				await document.documentElement.requestFullscreen();
@@ -3859,6 +3862,7 @@
 			btnDiaporamaGlobal.innerHTML = "&#9658; Diaporama global";
 			document.body.style.overflowY = "auto";
 			window.location.hash = "#adventDoors";
+			history.replaceState(null, "", "#adventDoors");
 			setTimeout(() => { imgPleinEcran.style.display = "none";imgPleinEcran.removeAttribute("src"); }, 500);
 		});
 
