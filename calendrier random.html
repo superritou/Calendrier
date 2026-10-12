@@ -8,7 +8,7 @@
 	<link rel="manifest" href="manifest.json">
     <title>Mon Calendrier Mensuel</title>
     <!-- Favicon dynamique par défaut (sera remplacé par une de tes images) -->
-    <link id="favicon" rel="icon" type="image/png" href="">
+    <link id="favicon" rel="icon" type="image/png" href="favicon.ico">
     <style>
         /* --- STYLES CSS INTÉGRÉS --- */
         html {
@@ -39,7 +39,7 @@
         .-content {
             text-align: center;
             width: 95vw;
-			min-width: 450px;
+			min-width: 350px;
 			max-width: 960px;
             margin: 2px auto 0 auto;
             line-height: 200%;
@@ -396,6 +396,7 @@
             top: 2px;
             left: 2px;
             transform: scale(0.5);
+			transform-origin: top left;
         }
 
         .-content h1 {
@@ -1653,6 +1654,7 @@
 
 			.-content {
 				line-height: 150%;
+				padding: 10px;
 			}
 
 			.-content h1 {
@@ -1668,7 +1670,8 @@
 			ul#adventDoors {
 				gap: 5px;
 				padding: 5px;
-				grid-template-columns: 30px repeat(7, 1fr);
+				grid-template-columns: 30px repeat(7, minmax(30px, 1fr));
+				border-width: 10px;
 			}
 
 			#adventDoors li.jour-semaine {
@@ -1829,6 +1832,7 @@
 
 			ul#adventDoors {
 				grid-template-columns: clamp(30px, 2vw, 50px) repeat(7, 1fr);
+				border-width: 10px;
 			}
 
 			#adventDoors li a {
@@ -1873,8 +1877,8 @@
 			#adventDoors li a span {
 				top: 2px !important;
 				left: 2px !important;
-				width: 34px !important;
-				height: 34px !important;
+				width: 25px !important;
+				height: 25px !important;
 				background-color: rgba(15, 23, 42, 0.4) !important;
 				border-radius: 50% !important;
 				display: flex !important;
@@ -1887,6 +1891,10 @@
 			#adventDoors li {
 				opacity: 1 !important;
 			}
+		}
+
+		@media (hover: none) and (pointer: coarse) {
+			.drop-zone-text { display: none; }
 		}
 
 		/* ============================================================
@@ -3321,7 +3329,9 @@
 		btnImageSuivante.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); imageSuivante(); });
 
 		document.addEventListener("keydown", (e) => {
-			if (window.location.hash !== "#modalZoom") return;
+			if (!imgPleinEcran || !imgPleinEcran.getAttribute('src')) {
+				return;
+			}
 			// Flèches : navigation manuelle (aussi pendant les diaporamas)
 			if (e.key === "ArrowLeft") {
 				if (diapoInterval) sauterImageDiapoMois(-1);
