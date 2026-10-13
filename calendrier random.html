@@ -955,6 +955,7 @@
 			display: flex;
 			align-items: center;
 			justify-content: center;
+			opacity: 0.4;
 			transition: all 0.2s ease;
 		}
 
@@ -962,6 +963,7 @@
 			background: rgba(15,23,42,0.9);
 			border-color: #fbbf24;
 			color: #fbbf24;
+			opacity: 1;
 			transform: translateY(-50%) scale(1.08);
 		}
 
@@ -1355,6 +1357,45 @@
 			font-weight: bold;
 		}
 
+		/* Boutons +/− : visibles uniquement sur écran tactile */
+		.diapo-vitesse-btns {
+			display: none;
+			gap: 8px;
+			margin-top: 6px;
+		}
+
+		.diapo-vitesse-btns button {
+			width: 44px;
+			height: 44px;
+			border-radius: 10px;
+			border: 2px ridge #2dd4bf;
+			background: #0f766e;
+			color: #fff;
+			font-size: 22px;
+			font-weight: bold;
+			cursor: pointer;
+			transition: all 0.2s ease;
+			touch-action: manipulation;
+			-webkit-tap-highlight-color: transparent;
+			user-select: none;
+		}
+
+		.diapo-vitesse-btns button:active {
+			background: #14b8a6;
+			transform: scale(0.92);
+		}
+
+		/* Écran tactile : le slider disparaît, les boutons prennent le relais */
+		@media (hover: none) and (pointer: coarse) {
+			.diapo-vitesse-btns {
+				display: flex;
+			}
+
+			input[type="range"].slider-vertical {
+				display: none;
+			}
+		}
+
 		/* Bouton ⌨ discret d'affichage des raccourcis */
 		.raccourcis-bouton {
 			position: fixed;
@@ -1694,17 +1735,17 @@
 			}
 
 			.navImage {
-				width: 45px;
-				height: 75px;
+				width: 25px;
+				height: 55px;
 				font-size: 32px;
 			}
 
 			.navGauche {
-				left: 8px;
+				left: 5px;
 			}
 
 			.navDroite {
-				right: 8px;
+				right: 5px;
 			}
 
 			.jourAffiche, #modalZoom #btnDiaporama, #modalZoom #btnDiaporamaGlobal, div.fermer {
@@ -2128,6 +2169,10 @@
 		<div class="diapo-vitesse-wrapper" title="Vitesse du diaporama">
 			<span class="diapo-vitesse-label">Vitesse</span>
 			<input type="range" id="rangeVitesseDiapo" class="slider-vertical" min="1" max="120" step="0.5" value="3.5">
+			<div class="diapo-vitesse-btns">
+				<button id="btnVitesseMoins" type="button" aria-label="Ralentir">−</button>
+				<button id="btnVitessePlus" type="button" aria-label="Accélérer">+</button>
+			</div>
 			<span id="valeurVitesseDiapo" class="diapo-vitesse-valeur">3.5s</span>
 		</div>
 
@@ -3169,6 +3214,20 @@
 			}
 		});
 
+		function borneNavigation() {
+			const liensDisponibles = adventDoors.querySelectorAll("li a:not(.disabled)");
+			const joursValides = [];
+
+			liensDisponibles.forEach(a => {
+				const img = a.querySelector("img");
+				if (img && img.src && img.style.display !== "none") {
+					joursValides.push(Number(a.dataset.jour));
+				}
+			});
+
+			return joursValides.length;
+		}
+
 		async function afficherImageJour(jour, title) {
 			const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
 			if (!lien) return;
@@ -3207,89 +3266,58 @@
 			imgPleinEcran.ariaLabel = imgElement.ariaLabel
 			infoImg.innerHTML = imgElement.ariaLabel
 
-			const liensDisponibles = adventDoors.querySelectorAll("li a:not(.disabled)");
-			const joursValides = [];
-
-			liensDisponibles.forEach(a => {
-				const img = a.querySelector("img");
-				if (img && img.src && img.style.display !== "none") {
-					joursValides.push(Number(a.dataset.jour));
-				}
-			});
-
-			const totalValides = joursValides.length;
+			const totalValides = borneNavigation();
 
 			numeroJourImage.innerHTML = `Jour<br> <span style="font-size: 10px; opacity: 0.8;">${jour}/${totalValides}</span>`;
 			window.location.hash = "modalZoom";
 			history.replaceState(null, "", location.pathname + location.search);
-
-			let precedente = false;
-			for (let j = jour - 1; j >= 1; j--) {
-				const a = adventDoors.querySelector(`a[data-jour="${j}"]`);
-				if (!a) continue;
-				const img = a.querySelector("img");
-				if (img && img.src && img.style.display !== "none") {
-					precedente = true;
-					break;
-				}
-			}
-
-			let suivante = false;
-			for (let j = jour + 1; j <= nbJoursMois; j++) {
-				const a = adventDoors.querySelector(`a[data-jour="${j}"]`);
-				if (!a) continue;
-
-				// Correction ici : on utilise la date complète du jour j à vérifier
-				const dateVerificationSuivante = new Date(anneeAffilee, moisAffiche, j);
-				if (dateVerificationSuivante > aujourdhuiMinuit) continue;
-
-				const img = a.querySelector("img");
-				if (img && img.src && img.style.display !== "none") {
-					suivante = true;
-					break;
-				}
-			}
-
-			if (!imgPleinEcran.classList.contains("diapo")) {
-				btnImagePrecedente.style.display = precedente ? "flex" : "none";
-				btnImageSuivante.style.display = suivante ? "flex" : "none";
-			} else {
-				btnImagePrecedente.dataset.display = precedente ? "flex" : "none";
-				btnImageSuivante.dataset.display = suivante ? "flex" : "none";
-			}
 		}
 
 		function imagePrecedente() {
-			if (diapoGlobalInterval) return;
-			if (diapoInterval) return;
-			let jour = jourImageActuel - 1;
-			while (jour >= 1) {
-				const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
-				if (lien) {
-					const img = lien.querySelector("img");
-					if (img.src && img.style.display !== "none") {
-						afficherImageJour(jour, lien.title);
-						return;
+			if (diapoInterval) {
+				sauterImageDiapoMois(-1);
+			} else if (diapoGlobalInterval) {
+				sauterImageDiapoGlobal(-1);
+			} else {
+				const borne = borneNavigation();
+				if (borne === 0) { toast("Aucune image disponible pour ce mois-ci !", "warning"); return; }
+				let jour = jourImageActuel - 1;
+				if (jour < 1) { jour = borne; }
+				while (jour >= 1) {
+					const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
+					if (lien) {
+						const img = lien.querySelector("img");
+						if (img.src && img.style.display !== "none") {
+							afficherImageJour(jour, lien.title);
+							return;
+						}
 					}
+					jour--;
 				}
-				jour--;
 			}
 		}
 
 		function imageSuivante() {
-			if (diapoGlobalInterval) return;
-			if (diapoInterval) return;
-			let jour = jourImageActuel + 1;
-			while (jour <= nbJoursMois) {
-				const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
-				if (lien) {
-					const img = lien.querySelector("img");
-					if (img.src && img.style.display !== "none") {
-						afficherImageJour(jour, lien.title);
-						return;
+			if (diapoInterval) {
+				sauterImageDiapoMois(1);
+			} else if (diapoGlobalInterval) {
+				sauterImageDiapoGlobal(1);
+			} else {
+				const borne = borneNavigation();
+				if (borne === 0) { toast("Aucune image disponible pour ce mois-ci !", "warning"); return; }
+				let jour = jourImageActuel + 1;
+				if (jour > borne) { jour = 1; }
+				while (jour <= borne) {
+					const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
+					if (lien) {
+						const img = lien.querySelector("img");
+						if (img.src && img.style.display !== "none") {
+							afficherImageJour(jour, lien.title);
+							return;
+						}
 					}
+					jour++;
 				}
-				jour++;
 			}
 		}
 
@@ -3340,14 +3368,10 @@
 			}
 			// Flèches : navigation manuelle (aussi pendant les diaporamas)
 			if (e.key === "ArrowLeft") {
-				if (diapoInterval) sauterImageDiapoMois(-1);
-				else if (diapoGlobalInterval) sauterImageDiapoGlobal(-1);
-				else imagePrecedente();
+				imagePrecedente();
 			}
 			if (e.key === "ArrowRight") {
-				if (diapoInterval) sauterImageDiapoMois(1);
-				else if (diapoGlobalInterval) sauterImageDiapoGlobal(1);
-				else imageSuivante();
+				imageSuivante();
 			}
 			if (e.key === "Escape") btnFermerZoom.click();
 
@@ -3516,14 +3540,72 @@
 			sauverVitesseDiapo();
 		});
 
-		// Gestion de la molette
-		document.querySelector(".diapo-vitesse-wrapper").addEventListener("wheel", (e) => {
-			e.preventDefault();
-			let val = parseFloat(rangeVitesseDiapo.value) + (e.deltaY < 0 ? 0.5 : -0.5);
+		// Gestion de la molette (uniquement sur écran non tactile)
+		const estTactile = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+
+		if (!estTactile) {
+			document.querySelector(".diapo-vitesse-wrapper").addEventListener("wheel", (e) => {
+				e.preventDefault();
+				let val = parseFloat(rangeVitesseDiapo.value) + (e.deltaY < 0 ? 0.5 : -0.5);
+				val = Math.max(parseFloat(rangeVitesseDiapo.min), Math.min(parseFloat(rangeVitesseDiapo.max), val));
+				rangeVitesseDiapo.value = val;
+				rangeVitesseDiapo.dispatchEvent(new Event("input"));
+			}, { passive: false });
+		}
+
+		// ============================================================
+		// BOUTONS +/− DE VITESSE (tactile) avec appui long
+		// Tap : ±0,5 s — appui maintenu : répétition accélérée
+		// ============================================================
+		const btnVitesseMoins = document.getElementById("btnVitesseMoins");
+		const btnVitessePlus = document.getElementById("btnVitessePlus");
+
+		function ajusterVitesse(sens) {
+			let val = parseFloat(rangeVitesseDiapo.value) + (sens * 0.5);
 			val = Math.max(parseFloat(rangeVitesseDiapo.min), Math.min(parseFloat(rangeVitesseDiapo.max), val));
 			rangeVitesseDiapo.value = val;
 			rangeVitesseDiapo.dispatchEvent(new Event("input"));
-		}, { passive: false });
+		}
+
+		function brancherBoutonVitesse(bouton, sens) {
+			let minuteurRepetition = null;
+			let retardInitial = null;
+
+			const demarrer = () => {
+				ajusterVitesse(sens);
+				// Après 450 ms d'appui, la répétition s'accélère progressivement
+				retardInitial = setTimeout(() => {
+					let intervalleMs = 150;
+					const repeter = () => {
+						ajusterVitesse(sens);
+						// On accélère : 150 ms → 100 ms → 60 ms → 40 ms
+						intervalleMs = Math.max(40, intervalleMs - 20);
+						minuteurRepetition = setTimeout(repeter, intervalleMs);
+					};
+					repeter();
+				}, 450);
+			};
+
+			const arreter = () => {
+				clearTimeout(retardInitial);
+				clearTimeout(minuteurRepetition);
+				retardInitial = null;
+				minuteurRepetition = null;
+			};
+
+			bouton.addEventListener("pointerdown", (e) => {
+				e.preventDefault();
+				demarrer();
+			});
+
+			// pointerup / pointercancel / pointerleave : on arrête dans tous les cas
+			["pointerup", "pointercancel", "pointerleave"].forEach(evenement => {
+				bouton.addEventListener(evenement, arreter);
+			});
+		}
+
+		brancherBoutonVitesse(btnVitesseMoins, -1);
+		brancherBoutonVitesse(btnVitessePlus, 1);
 
 		async function attendreElement(selector) {
 		  return new Promise(resolve => {
@@ -3669,8 +3751,6 @@
 				modalZoom.title = "Arrêter le diaporama du mois";
 				modalZoom.style.cursor = "pointer";
 				document.querySelector(".twImgWrapper").title = "";
-				btnImagePrecedente.style.display = "none";
-				btnImageSuivante.style.display = "none";
 				demarrerWakeLock()
 			}
 
@@ -3706,8 +3786,6 @@
 				btnDiaporama.innerHTML = "&#9658;";
 				btnDiaporama.ariaLabel  = btnDiaporama.innerHTML;
 				btnDiaporama.title = "Lancer le diaporama du mois";
-				btnImagePrecedente.style.display = btnImagePrecedente.dataset.display;
-				btnImageSuivante.style.display = btnImageSuivante.dataset.display;
 				imgPleinEcran.style.animation = 'none';
 				void imgPleinEcran.offsetHeight;
 				arreterWakeLock();
@@ -3798,8 +3876,6 @@
 					modalZoom.title = "Arrêter le diaporama global";
 					modalZoom.style.cursor = "pointer";
 					document.querySelector(".twImgWrapper").title = "";
-					btnImagePrecedente.style.display = "none";
-					btnImageSuivante.style.display = "none";
 					document.body.style.overflowY = "hidden";
 					demarrerWakeLock();
 				}
@@ -3879,10 +3955,14 @@
 			document.body.style.overflowY = "auto";
 			window.location.hash = "#adventDoors";
 			history.replaceState(null, "", location.pathname + location.search);
-			setTimeout(() => { imgPleinEcran.style.display = "none";imgPleinEcran.removeAttribute("src"); }, 500);
+			setTimeout(() => { imgPleinEcran.removeAttribute("style");imgPleinEcran.style.display = "none";imgPleinEcran.removeAttribute("src"); }, 500);
 		});
-		
-		window.addEventListener("popstate", () => {
+
+		window.addEventListener("popstate", (e) => {
+			//console.log("popstate", location.href, e.state);
+			if (!window.location.hash) {
+				btnFermerZoom.click()
+			}
 			history.replaceState(null, "", location.pathname + location.search);
 		});
 
