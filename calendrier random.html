@@ -4,6 +4,7 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta name="theme-color" content="#24283a">
+	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 	<meta name="description" content="Mon calendrier mensuel personnalisé">
 	<link rel="manifest" href="manifest.json">
     <title>Mon Calendrier Mensuel</title>
@@ -342,14 +343,6 @@
             overflow: hidden;
         }
 
-        #adventDoors li a.jour-actuel {
-            border-color: #28b96f;
-            background-color: rgba(21, 103, 57, 0.5);
-            box-shadow: 0 0 15px rgba(21, 103, 57, 0.6);
-            color: #28b96f;
-            font-weight: bold;
-        }
-
 		#adventDoors li a.disabled {
 			border-color: #f43f5e;
             background-color: rgba(244, 63, 94, 0.5);
@@ -362,6 +355,14 @@
 			filter: blur(5px);
 		}
 
+		#adventDoors li a.jour-info {
+			border-color: #f5f963;
+			background-color: rgba(178, 207, 3, 0.45);
+			box-shadow: 0 0 15px rgba(178, 207, 3, 0.5);
+			color: #d5e1a9;
+			font-weight: bold;
+		}
+
 		/* Jours fériés français (couleur violette) */
 		#adventDoors li a.jour-ferie {
 			border-color: #c084fc;
@@ -370,6 +371,14 @@
 			color: #e9d5ff;
 			font-weight: bold;
 		}
+
+        #adventDoors li a.jour-actuel {
+            border-color: #28b96f;
+            background-color: rgba(21, 103, 57, 0.5);
+            box-shadow: 0 0 15px rgba(21, 103, 57, 0.6);
+            color: #28b96f;
+            font-weight: bold;
+        }
 
         #adventDoors li a:hover {
             color: #fbbf24;
@@ -1914,6 +1923,13 @@
 				box-shadow: 0 4px 6px rgba(0,0,0,0.2) !important;
 			}
 
+			#adventDoors li a.jour-info {
+				color: #f5f963 !important;
+				border-color: #f5f963 !important;
+				background-color: rgba(178, 207, 3, 0.35) !important;
+				font-weight: bold !important;
+			}
+
 			#adventDoors li a.jour-ferie {
 				color: #c084fc !important;
 				border-color: #c084fc !important;
@@ -2026,6 +2042,13 @@
 			font-weight: normal !important;
 			font-size: 25px !important;
 			box-shadow: 0 4px 6px rgba(0,0,0,0.2) !important;
+		}
+
+		#calendrier #adventDoors li a.jour-info {
+			color: #f5f963 !important;
+			border-color: #f5f963 !important;
+			background-color: rgba(178, 207, 3, 0.35) !important;
+			font-weight: bold !important;
 		}
 
 		#calendrier #adventDoors li a.jour-ferie {
@@ -2660,7 +2683,11 @@
 				a.title = `${joursNoms[dateCourante.getDay()]} ${jourFormate} ${moisNoms[moisAffiche]} ${anneeAffilee}${libelleSpecial ? ` • ${libelleSpecial}` : ""}`;
 				a.dataset.jour = i;
 
-				if (ferieDuJour) {
+				if (repereDuJour) {
+					a.classList.add("jour-info");
+				}
+
+				if (indexJourActuel === 6 || ferieDuJour) {
 					a.classList.add("jour-ferie");
 				}
 
@@ -2675,6 +2702,9 @@
 
 				if (estFutur) {
 					a.classList.add("disabled");
+					a.addEventListener("contextmenu", (e) => {
+						e.preventDefault();
+					});
 				}
 
 				a.innerHTML = `<span>${i}</span><img loading="lazy" style="display: none;" alt="Jour ${i}">`;
@@ -2689,7 +2719,7 @@
 					// pour laisser la place au double clic (galerie).
 					clearTimeout(timerClicPleinEcran);
 					timerClicPleinEcran = setTimeout(() => {
-						afficherImageJour(Number(a.dataset.jour), a.title);
+						afficherImageJour(Number(a.dataset.jour));
 					}, 250);
 				});
 
@@ -3214,7 +3244,7 @@
 			}
 		});
 
-		function borneNavigation() {
+		function borneNavigation(taille = true) {
 			const liensDisponibles = adventDoors.querySelectorAll("li a:not(.disabled)");
 			const joursValides = [];
 
@@ -3224,20 +3254,24 @@
 					joursValides.push(Number(a.dataset.jour));
 				}
 			});
-
-			return joursValides.length;
+			if ( taille ) return joursValides.length;
+			return joursValides;
 		}
 
-		async function afficherImageJour(jour, title) {
+		async function afficherImageJour(jour) {
+			if (!window.derniersHandlesCharges || window.derniersHandlesCharges.length === 0) {
+				infoStatut.textContent = "📂 Veuillez d'abord sélectionner ou glisser un dossier d'images.";
+				return;
+			}
 			const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
 			if (!lien) return;
 
-			const dateDuJourSelectionne = new Date(anneeAffilee, moisAffiche, jour);
-			const aujourdhuiMinuit = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-			if (dateDuJourSelectionne > aujourdhuiMinuit) { toast(`🚫 ${lien.title} est encore dans le futur : l'affichage de l'image reste indisponible.`, "warning"); return;}
+			if (lien.classList.contains("disabled")) {
+				toast(`🚫 ${lien.title} est encore dans le futur : l'affichage de l'image reste indisponible.`, "warning");
+				return;
+			}
 
 			const imgElement = lien.querySelector("img");
-			if (!imgElement.src || imgElement.style.display === "none") return;
 
 			document.body.style.overflowY = "hidden";
 			resetZoom(imgPleinEcran);
@@ -3261,7 +3295,7 @@
 			} catch (e) {
 				return;
 			}
-			imgPleinEcran.title = title;
+			imgPleinEcran.title = lien.title;
 			jourImageActuel = jour;
 			imgPleinEcran.ariaLabel = imgElement.ariaLabel
 			infoImg.innerHTML = imgElement.ariaLabel
@@ -3288,7 +3322,7 @@
 					if (lien) {
 						const img = lien.querySelector("img");
 						if (img.src && img.style.display !== "none") {
-							afficherImageJour(jour, lien.title);
+							afficherImageJour(jour);
 							return;
 						}
 					}
@@ -3312,7 +3346,7 @@
 					if (lien) {
 						const img = lien.querySelector("img");
 						if (img.src && img.style.display !== "none") {
-							afficherImageJour(jour, lien.title);
+							afficherImageJour(jour);
 							return;
 						}
 					}
@@ -3333,7 +3367,7 @@
 			const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
 			if (lien) {
 				jourImageActuel = jour;
-				afficherImageJour(jour, lien.title);
+				afficherImageJour(jour);
 			}
 			// Le cycle reprendra sur l'image d'après la cible
 			indexActuelMois = (cible + 1) % joursValidesDiapo.length;
@@ -3687,7 +3721,7 @@
 			const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
 			if (lien) {
 				jourImageActuel = jour;
-				afficherImageJour(jour, lien.title);
+				afficherImageJour(jour);
 			}
 
 			// On prépare l'image suivante
@@ -3717,21 +3751,7 @@
 				await arreterDiaporamaGlobal();
 			}
 			// 1. Récupérer tous les jours valides et ouverts du mois affiché
-			const joursValides = [];
-			const aujourdhuiMinuit = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-			for (let i = 1; i <= nbJoursMois; i++) {
-				const dateJour = new Date(anneeAffilee, moisAffiche, i);
-				if (dateJour <= aujourdhuiMinuit) {
-					const lien = adventDoors.querySelector(`a[data-jour="${i}"]`);
-					if (lien) {
-						const img = lien.querySelector("img");
-						if (img && img.src && img.style.display !== "none") {
-							joursValides.push(i);
-						}
-					}
-				}
-			}
+			const joursValides = borneNavigation( false );
 
 			if (joursValides.length === 0) {
 				toast("Aucune image disponible pour le diaporama ce mois-ci !", "warning");
@@ -4233,6 +4253,7 @@
 				return;
 			}
 			const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
+			if (!lien) return;
 
 			if (lien.classList.contains("disabled")) {
 				toast(`🚫 ${lien.title} est encore dans le futur : le changement d'image reste indisponible.`, "warning");
@@ -4362,9 +4383,8 @@
 				return;
 			}
 			const jour = jourGalerieActuel;
-			const titreJour = lien.title;
 			fermerGalerie();
-			afficherImageJour(jour, titreJour);
+			afficherImageJour(jour);
 		});
 
         // ============================================================

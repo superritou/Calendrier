@@ -1,4 +1,4 @@
-const CACHE = "calendrier-v1";
+const CACHE = "calendrier-v2";
 const RESSOURCES = [
     "./",
     "./calendrier random.html",
