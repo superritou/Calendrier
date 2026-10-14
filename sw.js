@@ -16,10 +16,39 @@ const URLS_RESSOURCES = RESSOURCES.map(
 self.addEventListener("install", event => {
     event.waitUntil(
         (async () => {
-            // Prépare les nouvelles ressources dans un cache temporaire.
-            // Le cache actif reste intact pendant l'installation.
             const cache = await caches.open(CACHE_INSTALLATION);
-            await cache.addAll(RESSOURCES);
+
+            for (const ressource of RESSOURCES) {
+                const url = new URL(ressource, self.registration.scope);
+
+                try {
+                    const reponse = await fetch(url);
+
+                    console.log(
+                        "[SW] Ressource :",
+                        url.href,
+                        "| Statut :",
+                        reponse.status
+                    );
+
+                    if (!reponse.ok) {
+                        throw new Error(
+                            `HTTP ${reponse.status} pour ${url.href}`
+                        );
+                    }
+
+                    await cache.put(url.href, reponse);
+                } catch (erreur) {
+                    console.error(
+                        "[SW] Échec de chargement :",
+                        url.href,
+                        erreur
+                    );
+
+                    throw erreur;
+                }
+            }
+
             await self.skipWaiting();
         })()
     );
