@@ -2242,6 +2242,7 @@
 					<button id="btnDossier">📁 Sélectionner le dossier</button>
 					<span class="drop-zone-text">ou glissez-déposez votre dossier d'images ici</span>
 					<button id="btnToggleOpacite">👁️ Masquer les jours</button>
+					<button id="btnNotifications" title="Recevoir une notification le lendemain matin pour découvrir l'image du jour (l'application doit rester ouverte)">🔔 Notifications : OFF</button>
 				</div>
 				<p id="infoStatut">Veuillez sélectionner ou glisser votre dossier d'images pour charger ou générer le mois.</p>
 			</div>
@@ -2356,6 +2357,7 @@
 		<div>🖱️ <strong>Clic simple</strong> sur un jour : image en plein écran.</div>
 		<div>🖱️ <strong>Double-clic</strong> sur un jour : choisir l'image de ce jour parmi vos photos.</div>
 		<div>📂 Naviguez entre les mois et les années avec les boutons ou le sélecteur de date.</div>
+		<div>🔔 Le bouton <strong>« Notifications »</strong> programme un rappel système le lendemain matin pour l'image du jour — à condition de laisser cette page ouverte (un onglet en arrière-plan suffit).</div>
 		<div>🗑️ Le bouton <strong>« Réinitialiser les images »</strong> efface les images attribuées aux jours et en tire de nouvelles au hasard. Vos photos d'origine ne sont pas supprimées.</div>
 		<hr class="aide-separateur">
 		<div class="aide-confidentialite">🔒 Vos images ne quittent jamais votre appareil : tout est stocké localement dans votre navigateur, rien n'est envoyé sur Internet.</div>
@@ -2415,6 +2417,103 @@
 				panneauAide.classList.remove("visible");
 			}
 		});
+
+		// ============================================================
+		// NOTIFICATIONS LOCALES (image du jour, le lendemain matin)
+		// Fonctionne uniquement si l'application reste ouverte :
+		// un minuteur programmé pour le lendemain à 9h déclenche
+		// une notification système. Aucun serveur, rien d'envoyé.
+		// ============================================================
+
+		const CLE_NOTIFS = "calendrier_notifications";
+		const HEURE_NOTIF = 9; // heure du rappel du matin
+		const btnNotifications = document.getElementById("btnNotifications");
+		let minuteurNotification = null;
+
+		function notifsActivees() {
+			return localStorage.getItem(CLE_NOTIFS) === "1";
+		}
+
+		function sauverNotifications() {
+			// La préférence survit aux localStorage.clear()
+			if (notifsActivees()) {
+				localStorage.setItem(CLE_NOTIFS, "1");
+			}
+		}
+
+		function calculerDelaiLendemainMatin() {
+			const cible = new Date();
+			cible.setDate(cible.getDate() + 1);
+			cible.setHours(HEURE_NOTIF, 0, 0, 0);
+			return cible.getTime() - Date.now();
+		}
+
+		function afficherNotificationDuJour() {
+			if (!notifsActivees() || !("Notification" in window) || Notification.permission !== "granted") {
+				return;
+			}
+			const jour = new Date();
+			try {
+				new Notification(
+					`📅 ${jour.getDate()} ${moisNoms[jour.getMonth()]} — nouvelle image du jour !`,
+					{
+						body: "Ouvrez votre calendrier pour découvrir l'image du jour.",
+						tag: "calendrier-image-jour"
+					}
+				);
+			} catch (e) {
+				// Notification bloquée par le système : on replanifie quand même
+			}
+			// L'onglet est toujours ouvert : on replanifie pour le lendemain
+			planifierNotification();
+		}
+
+		function planifierNotification() {
+			clearTimeout(minuteurNotification);
+			minuteurNotification = setTimeout(afficherNotificationDuJour, calculerDelaiLendemainMatin());
+		}
+
+		function majBoutonNotifications() {
+			btnNotifications.textContent = notifsActivees()
+				? "🔔 Notifications : ON"
+				: "🔔 Notifications : OFF";
+		}
+
+		btnNotifications.addEventListener("click", async () => {
+			// Désactivation
+			if (notifsActivees()) {
+				localStorage.removeItem(CLE_NOTIFS);
+				clearTimeout(minuteurNotification);
+				majBoutonNotifications();
+				toast("🔕 Notifications désactivées.", "info");
+				return;
+			}
+			if (!("Notification" in window)) {
+				toast("Ce navigateur ne gère pas les notifications système.", "warning");
+				return;
+			}
+			// La permission doit être demandée depuis un clic utilisateur
+			let permission = Notification.permission;
+			if (permission === "default") {
+				permission = await Notification.requestPermission();
+			}
+			if (permission !== "granted") {
+				toast("🔔 Permission de notification refusée — impossible de continuer.", "warning");
+				return;
+			}
+			localStorage.setItem(CLE_NOTIFS, "1");
+			planifierNotification();
+			majBoutonNotifications();
+			const lendemain = new Date(Date.now() + calculerDelaiLendemainMatin());
+			toast(
+				`🔔 Rappel programmé pour le ${lendemain.getDate()} ${moisNoms[lendemain.getMonth()]} à ${HEURE_NOTIF}h00 — laissez cette page ouverte (un onglet en arrière-plan suffit).`,
+				"success",
+				8000
+			);
+		});
+
+		// L'initialisation (réarmement + rattrapage) est faite à la
+		// fin du script, une fois toutes les constantes déclarées.
 
 		// ============================================================
 		// NOTIFICATIONS ET CONFIRMATIONS
@@ -3281,6 +3380,7 @@
 				if (rawHandles.length > 0) {
 					localStorage.clear();
 					sauverVitesseDiapo(); // la vitesse est une préférence : on la conserve
+					sauverNotifications(); // les notifications aussi
 					await traiterDossierImages(rawHandles, true);
 				} else {
 					loaderOverlay.classList.add("cache");
@@ -3298,6 +3398,7 @@
 			if (await confirmToast("Voulez-vous vraiment effacer les images enregistrées ?")) {
 				localStorage.clear();
 				sauverVitesseDiapo(); // la vitesse est une préférence : on la conserve
+				sauverNotifications(); // les notifications aussi
 				location.reload();
 			}
 		});
@@ -3368,6 +3469,7 @@
 				if (rawHandles.length > 0) {
 					localStorage.clear();
 					sauverVitesseDiapo();
+					sauverNotifications();
 
 					if (!dossierPrincipal) {
 						await sauvegarderDossierDropFichiers();
@@ -5202,6 +5304,40 @@
 			characterData: true, // Surveille les modifications directes du texte (textContent)
 			subtree: false        // Surveille aussi les descendants si nécessaire
 		});
+
+		// ============================================================
+		// INITIALISATION DES NOTIFICATIONS
+		// (à la fin du script : moisNoms est maintenant déclaré)
+		// ============================================================
+		majBoutonNotifications();
+		if (notifsActivees() && "Notification" in window && Notification.permission === "granted") {
+			planifierNotification();
+
+			// Rattrapage : si l'heure de notification du jour est déjà
+			// passée (PC éteint la nuit, page fermée), on affiche le
+			// rappel immédiatement à l'ouverture de la page.
+			// Pour éviter le harcèlement, on ne le fait qu'une seule
+			// fois par jour (date mémorisée dans le localStorage).
+			const AUJOURDHUI = new Date();
+			const heurePassee = AUJOURDHUI.getHours() >= HEURE_NOTIF;
+			const dernierRattrapage = localStorage.getItem(CLE_NOTIFS + "_rattrapage");
+			const cleAujourdhui = `${AUJOURDHUI.getFullYear()}-${AUJOURDHUI.getMonth()}-${AUJOURDHUI.getDate()}`;
+
+			if (heurePassee && dernierRattrapage !== cleAujourdhui) {
+				try {
+					new Notification(
+						`📅 ${AUJOURDHUI.getDate()} ${moisNoms[AUJOURDHUI.getMonth()]} — l'image du jour vous attend !`,
+						{
+							body: "Le calendrier est maintenant ouvert : découvrez l'image du jour.",
+							tag: "calendrier-image-jour"
+						}
+					);
+					localStorage.setItem(CLE_NOTIFS + "_rattrapage", cleAujourdhui);
+				} catch (e) {
+					// Notification bloquée : pas grave, le minuteur prendra le relais demain
+				}
+			}
+		}
 
 		if ("serviceWorker" in navigator && location.protocol !== "file:") {
 			navigator.serviceWorker.register("./sw.js").catch(() => {});
