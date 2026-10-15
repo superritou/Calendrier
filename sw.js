@@ -8,6 +8,8 @@ const RESSOURCES = [
     "./calendrier icone-512.png"
 ];
 
+const PAGE_PRINCIPALE = new URL(RESSOURCES[1], self.registration.scope).href;
+
 // Convertit les chemins relatifs en URL pour comparer correctement les ressources.
 const URLS_RESSOURCES = RESSOURCES.map(
     ressource => new URL(ressource, self.registration.scope).pathname
@@ -19,7 +21,32 @@ self.addEventListener("install", event => {
             // Prépare les nouvelles ressources dans un cache temporaire.
             // Le cache actif reste intact pendant l'installation.
             const cache = await caches.open(CACHE_INSTALLATION);
-            await cache.addAll(RESSOURCES);
+
+            for (const ressource of RESSOURCES) {
+                const url = new URL(ressource, self.registration.scope);
+
+                try {
+                    // "reload" : l'installation ignore le cache HTTP
+                    const reponse = await fetch(url, { cache: "reload" });
+
+                    console.log(
+                        "[SW] Ressource :",
+                        url.href,
+                        "| Statut :",
+                        reponse.status
+                    );
+
+                    if (!reponse.ok) {
+                        throw new Error(`HTTP ${reponse.status} pour ${url.href}`);
+                    }
+
+                    await cache.put(url.href, reponse);
+                } catch (erreur) {
+                    console.error("[SW] Échec de chargement :", url.href, erreur);
+                    throw erreur;
+                }
+            }
+
             await self.skipWaiting();
         })()
     );
@@ -93,20 +120,12 @@ self.addEventListener("fetch", event => {
 
                 // Pour une navigation, essaie la page principale du calendrier.
                 if (estNavigation) {
-                    const pagePrincipale = await cache.match(
-                        new URL(
-                            "./calendrier random.html",
-                            self.registration.scope
-                        ).href
-                    );
+                    const pagePrincipale = await cache.match(PAGE_PRINCIPALE);
 
                     if (pagePrincipale) return pagePrincipale;
 
                     const racine = await cache.match(
-                        new URL(
-                            "./",
-                            self.registration.scope
-                        ).href
+                        new URL("./", self.registration.scope).href
                     );
 
                     if (racine) return racine;
