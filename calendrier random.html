@@ -341,6 +341,13 @@
             transition: all 400ms ease;
             box-shadow: 0 4px 6px rgba(0,0,0,0.2);
             overflow: hidden;
+			background-position-x: center;
+			background-position-y: center;
+			background-repeat: initial;
+			background-attachment: scroll;
+			background-origin: initial;
+			background-clip: initial;
+			background-size: contain;
         }
 
 		#adventDoors li a.disabled {
@@ -1447,6 +1454,89 @@
 			background: rgba(15, 23, 42, 0.9);
 		}
 
+		/* ============================================================
+		   BOUTON D'AIDE (?) ET MODE D'EMPLOI
+		   ============================================================ */
+		.aide-bouton {
+			position: fixed;
+			left: 20px;
+			bottom: 8px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 42px;
+			height: 42px;
+			border-radius: 50%;
+			background: rgba(15, 23, 42, 0.75);
+			backdrop-filter: blur(5px);
+			border: 2px solid rgba(255, 255, 255, 0.2);
+			color: #e2e8f0;
+			font-size: 20px;
+			font-weight: bold;
+			cursor: pointer;
+			z-index: 100006;
+			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+			transition: all 0.3s ease;
+		}
+
+		.aide-bouton:hover {
+			border-color: #fbbf24;
+			background: rgba(15, 23, 42, 0.9);
+		}
+
+		/* Masqué quand une fenêtre modale est ouverte (le bouton ⌨ prend le relais) */
+		.twAudessus:target ~ .aide-bouton,
+		.galerie-overlay.visible ~ .aide-bouton,
+		.galerie-apercu.visible ~ .aide-bouton {
+			display: none;
+		}
+
+		.panneau-aide {
+			position: fixed;
+			left: 20px;
+			bottom: 60px;
+			display: none;
+			flex-direction: column;
+			gap: 8px;
+			background: rgba(15, 23, 42, 0.85);
+			backdrop-filter: blur(5px);
+			border: 2px solid rgba(255, 255, 255, 0.2);
+			border-radius: 12px;
+			padding: 14px 16px;
+			z-index: 100007;
+			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+			color: #e2e8f0;
+			font-size: 13px;
+			font-family: "Lato", sans-serif;
+			max-width: min(420px, calc(100vw - 40px));
+			text-align: left;
+			line-height: 1.5;
+		}
+
+		.panneau-aide.visible {
+			display: flex;
+		}
+
+		.panneau-aide .aide-titre {
+			font-size: 14px;
+			font-weight: bold;
+			color: #2dd4bf;
+			margin-bottom: 2px;
+			text-align: center;
+		}
+
+		.panneau-aide .aide-separateur {
+			border: 0;
+			border-top: 1px solid rgba(255, 255, 255, 0.15);
+			margin: 4px 0;
+			width: 100%;
+		}
+
+		.panneau-aide .aide-confidentialite {
+			color: #94a3b8;
+			font-style: italic;
+		}
+
 		/* Panneau des raccourcis clavier (partagé visionneuse / galerie) */
 		.panneau-raccourcis {
 			position: fixed;
@@ -1811,6 +1901,21 @@
 				gap: 4px;
 			}
 
+			.aide-bouton {
+				left: 8px;
+				width: 36px;
+				height: 36px;
+				font-size: 16px;
+			}
+
+			.panneau-aide {
+				left: 8px;
+				bottom: 52px;
+				font-size: 11px;
+				padding: 8px 12px;
+				gap: 6px;
+			}
+
 			.touche {
 				min-width: 20px;
 				height: 20px;
@@ -1877,6 +1982,8 @@
 			#galerieApercu,
 			#loaderOverlay,
 			#btnToggleCalendar,
+			.aide-bouton,
+			.panneau-aide,
 			.menu,
 			#toastContainer {
 				display: none !important;
@@ -1889,16 +1996,6 @@
 			ul#adventDoors {
 				grid-template-columns: clamp(30px, 2vw, 50px) repeat(7, 1fr);
 				border-width: 10px;
-			}
-
-			#adventDoors li a {
-				background-position-x: center !important;
-				background-position-y: center !important;
-				background-repeat: initial !important;
-				background-attachment: scroll !important;
-				background-origin: initial !important;
-				background-clip: initial !important;
-				background-size: contain !important;
 			}
 
 			#adventDoors li.numero-semaine {
@@ -2002,6 +2099,8 @@
 		#calendrier #galerieApercu,
 		#calendrier #loaderOverlay,
 		#calendrier #btnToggleCalendar,
+		#calendrier .aide-bouton,
+		#calendrier .panneau-aide,
 		#calendrier .menu,
 		#calendrier #toastContainer	{
 			display: none !important;
@@ -2009,16 +2108,6 @@
 
 		#calendrier a.disabled img {
 			filter: none !important;
-		}
-
-		#calendrier #adventDoors li a {
-			background-position-x: center !important;
-			background-position-y: center !important;
-			background-repeat: initial !important;
-			background-attachment: scroll !important;
-			background-origin: initial !important;
-			background-clip: initial !important;
-			background-size: contain !important;
 		}
 
 		#calendrier #adventDoors li.jour-semaine{
@@ -2258,6 +2347,20 @@
         <button id="btnRaccourcisApercu" class="raccourcis-bouton" title="Raccourcis clavier" aria-label="Raccourcis clavier">⌨</button>
     </div>
 
+	<!-- Bouton d'aide et mode d'emploi (visible sur l'écran principal) -->
+	<button id="btnAide" class="aide-bouton" title="Mode d'emploi" aria-label="Mode d'emploi">?</button>
+	<div id="panneauAide" class="panneau-aide">
+		<div class="aide-titre">📅 Mon Calendrier — mode d'emploi</div>
+		<div>1️⃣ Sélectionnez ou glissez-déposez le dossier contenant vos images : le calendrier du mois se remplit automatiquement, une image par jour.</div>
+		<hr class="aide-separateur">
+		<div>🖱️ <strong>Clic simple</strong> sur un jour : image en plein écran.</div>
+		<div>🖱️ <strong>Double-clic</strong> sur un jour : choisir l'image de ce jour parmi vos photos.</div>
+		<div>📂 Naviguez entre les mois et les années avec les boutons ou le sélecteur de date.</div>
+		<div>🗑️ Le bouton <strong>« Réinitialiser les images »</strong> efface les images attribuées aux jours et en tire de nouvelles au hasard. Vos photos d'origine ne sont pas supprimées.</div>
+		<hr class="aide-separateur">
+		<div class="aide-confidentialite">🔒 Vos images ne quittent jamais votre appareil : tout est stocké localement dans votre navigateur, rien n'est envoyé sur Internet.</div>
+	</div>
+
 	<!-- Notifications -->
 	<div id="toastContainer" aria-live="polite" aria-atomic="true"></div>
 
@@ -2285,6 +2388,32 @@
 
 		fermerAlerteNavigateur.addEventListener("click", () => {
 			alerteNavigateur.hidden = true;
+		});
+
+		// ============================================================
+		// MODE D'EMPLOI (bouton ? en bas à gauche)
+		// ============================================================
+
+		const btnAide = document.getElementById("btnAide");
+		const panneauAide = document.getElementById("panneauAide");
+
+		btnAide.addEventListener("click", (e) => {
+			e.stopPropagation();
+			panneauAide.classList.toggle("visible");
+		});
+
+		document.addEventListener("click", (e) => {
+			if (panneauAide.classList.contains("visible") &&
+				!panneauAide.contains(e.target) &&
+				!btnAide.contains(e.target)) {
+				panneauAide.classList.remove("visible");
+			}
+		});
+
+		document.addEventListener("keydown", (e) => {
+			if (e.key === "Escape") {
+				panneauAide.classList.remove("visible");
+			}
 		});
 
 		// ============================================================
@@ -2946,19 +3075,32 @@
 				attributionMois = {};
 			}
 
-			const nomsMelanges = melangerTableau([...allNames]);
+			let nomsMelanges = melangerTableau([...allNames]);
 			let indexMelange = 0;
+
+			// Assez d'images pour un tirage sans doublon ?
+			const assezDImages = allNames.length >= nbJoursMois;
 
 			for (let i = 1; i <= nbJoursMois; i++) {
 				const cleJour = `jour_${i}`;
 				const nomActuel = attributionMois[cleJour];
 
-				if (!nomActuel || !handleMap[nomActuel]) {
-					while (indexMelange < nomsMelanges.length && Object.values(attributionMois).includes(nomsMelanges[indexMelange])) {
-						indexMelange++;
-					}
-					if (indexMelange >= nomsMelanges.length) indexMelange = 0;
+				// Attribution valide existante : on la garde.
+				if (nomActuel && handleMap[nomActuel]) continue;
 
+				if (assezDImages) {
+					let nom = nomsMelanges[indexMelange];
+					while (Object.values(attributionMois).includes(nom)) {
+						indexMelange++;
+						nom = nomsMelanges[indexMelange];
+					}
+					attributionMois[cleJour] = nom;
+					indexMelange++;
+				} else {
+					if (indexMelange >= nomsMelanges.length) {
+						nomsMelanges = melangerTableau([...allNames]);
+						indexMelange = 0;
+					}
 					attributionMois[cleJour] = nomsMelanges[indexMelange];
 					indexMelange++;
 				}

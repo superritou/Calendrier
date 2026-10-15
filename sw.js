@@ -8,6 +8,7 @@ const RESSOURCES = [
     "./calendrier icone-512.png"
 ];
 
+const RACINE = new URL(RESSOURCES[0], self.registration.scope).href;
 const PAGE_PRINCIPALE = new URL(RESSOURCES[1], self.registration.scope).href;
 
 // Convertit les chemins relatifs en URL pour comparer correctement les ressources.
@@ -124,9 +125,7 @@ self.addEventListener("fetch", event => {
 
                     if (pagePrincipale) return pagePrincipale;
 
-                    const racine = await cache.match(
-                        new URL("./", self.registration.scope).href
-                    );
+                    const racine = await cache.match(RACINE);
 
                     if (racine) return racine;
                 }
