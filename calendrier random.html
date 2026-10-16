@@ -2455,9 +2455,6 @@
 		// Obligatoire sur mobile : Chrome Android et les PWA iOS ne
 		// supportent PAS « new Notification() » — uniquement le SW.
 		function afficherNotification(titre, corps) {
-			if (!window.derniersHandlesCharges || window.derniersHandlesCharges.length === 0) {
-				return;
-			}
 			const options = { body: corps, icon: "./calendrier-maskable-512.png", tag: "calendrier-image-jour" };
 			if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
 				navigator.serviceWorker.ready
