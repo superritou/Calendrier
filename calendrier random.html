@@ -2455,7 +2455,7 @@
 		// Obligatoire sur mobile : Chrome Android et les PWA iOS ne
 		// supportent PAS « new Notification() » — uniquement le SW.
 		function afficherNotification(titre, corps) {
-			const options = { body: corps, icon: "/calendrier-maskable-512.png", tag: "calendrier-image-jour" };
+			const options = { body: corps, icon: "./calendrier-maskable-512.png", tag: "calendrier-image-jour" };
 			if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
 				navigator.serviceWorker.ready
 					.then(registration => registration.showNotification(titre, options))
