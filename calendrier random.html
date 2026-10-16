@@ -2477,7 +2477,7 @@
 
 		async function obtenirIconeJour(delaiMaxMs = 4000) {
 			while (Date.now() < fin) {
-				const img = three.src : null;
+				const img = three.src;
 				if (img && img.src && img.complete) {
 					try {
 						return await imageCarreeReduite(img.src, 192);
