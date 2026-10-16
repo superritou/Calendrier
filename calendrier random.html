@@ -3399,10 +3399,12 @@
 			const cleAujourdhui = `${AUJOURDHUI.getFullYear()}-${AUJOURDHUI.getMonth()}-${AUJOURDHUI.getDate()}`;
 
 			if (heurePassee && dernierRattrapage !== cleAujourdhui) {
+				const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
+				const imgElement = lien.querySelector("img");
 				afficherNotification(
 					`📅 ${AUJOURDHUI.getDate()} ${moisNoms[AUJOURDHUI.getMonth()]} — l'image du jour vous attend !`,
 					"Le calendrier est maintenant ouvert : découvrez l'image du jour.",
-					`${adventDoors.querySelector(`a[data-jour="${AUJOURDHUI.getDate()}"]`).querySelector("img").src;}`
+					`${imgElement.src}`
 				);
 				localStorage.setItem(CLE_NOTIFS + "_rattrapage", cleAujourdhui);
 			}
