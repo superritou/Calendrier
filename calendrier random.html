@@ -2450,12 +2450,72 @@
 			return cible.getTime() - Date.now();
 		}
 
+		function imageCarreeReduite(src, taille = 192) {
+			return new Promise((resolve, reject) => {
+				const img = new Image();
+				img.onload = () => {
+					try {
+						const cote = Math.min(img.naturalWidth, img.naturalHeight);
+						const canvas = document.createElement("canvas");
+						canvas.width = canvas.height = taille;
+						const ctx = canvas.getContext("2d");
+						// Carré centré sur la photo, redimensionné d'un coup
+						ctx.drawImage(
+							img,
+							(img.naturalWidth - cote) / 2, (img.naturalHeight - cote) / 2, cote, cote,
+							0, 0, taille, taille
+						);
+						resolve(canvas.toDataURL("image/jpeg", 0.85));
+					} catch (e) {
+						reject(e);
+					}
+				};
+				img.onerror = reject;
+				img.src = src;
+			});
+		}
+
+		async function obtenirIconeJour(delaiMaxMs = 4000) {
+			const jour = new Date().getDate();
+			const fin = Date.now() + delaiMaxMs;
+			while (Date.now() < fin) {
+				if (three && three.src) {
+					try {
+						return await imageCarreeReduite(three.src, 192);
+					} catch (e) {
+						break;
+					}
+				}
+				await new Promise(r => setTimeout(r, 200));
+			}
+			// Image du jour indisponible : icône du site par défaut
+			return "./calendrier-maskable-512.png";
+		}
+
+		async function obtenirImagesJour(delaiMaxMs = 4000) {
+			const jour = new Date().getDate();
+			const fin = Date.now() + delaiMaxMs;
+			while (Date.now() < fin) {
+				const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
+				const img = lien ? lien.querySelector("img") : null;
+				if (img && img.src && img.style.display !== "none" && img.complete) {
+					const grandeImage = await blobVersDataUrlReduit(img.src, 512).catch(() => null);
+					return grandeImage;
+				}
+				await new Promise(r => setTimeout(r, 200));
+			}
+			return null;
+		}
+
 		// Affiche une notification via le service worker quand il est
 		// disponible, sinon via le constructeur classique.
 		// Obligatoire sur mobile : Chrome Android et les PWA iOS ne
 		// supportent PAS « new Notification() » — uniquement le SW.
-		function afficherNotification(titre, corps) {
-			const options = { body: corps, icon: "./calendrier-maskable-512.png", tag: "calendrier-image-jour" };
+		function afficherNotification(titre, corps, icone = null, grandeImage = null) {
+			const options = { body: corps, tag: "calendrier-image-jour" };
+			if (icone) options.icon = icone;
+			if (grandeImage) options.image = grandeImage;
+
 			if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
 				navigator.serviceWorker.ready
 					.then(registration => registration.showNotification(titre, options))
@@ -2472,10 +2532,16 @@
 				return;
 			}
 			const jour = new Date();
-			afficherNotification(
-				`📅 ${jour.getDate()} ${moisNoms[jour.getMonth()]} — nouvelle image du jour !`,
-				"Ouvrez votre calendrier pour découvrir l'image du jour."
-			);
+			obtenirIconeJour(2000).then(icone => {
+				obtenirImagesJour(2000).then(grandeImage => {
+					afficherNotification(
+						`📅 ${jour.getDate()} ${moisNoms[jour.getMonth()]} — nouvelle image du jour !`,
+						"Ouvrez votre calendrier pour découvrir l'image du jour.",
+						icone,
+						grandeImage
+					);
+				});
+			});
 			// L'onglet est toujours ouvert : on replanifie pour le lendemain
 			planifierNotification();
 		}
@@ -3380,6 +3446,40 @@
 			btnDossier.textContent = "📁 Changer de dossier";
 			loaderOverlay.classList.add("cache");
 			window.derniersHandlesCharges = handlesAUtiliser;
+		// ============================================================
+		// INITIALISATION DES NOTIFICATIONS
+		// (à la fin du script : moisNoms est maintenant déclaré)
+		// ============================================================
+		majBoutonNotifications();
+		if (notifsActivees() && "Notification" in window && Notification.permission === "granted") {
+			planifierNotification();
+
+			// Rattrapage : si l'heure de notification du jour est déjà
+			// passée (PC éteint la nuit, page fermée), on affiche le
+			// rappel immédiatement à l'ouverture de la page.
+			// Pour éviter le harcèlement, on ne le fait qu'une seule
+			// fois par jour (date mémorisée dans le localStorage).
+			const AUJOURDHUI = new Date();
+			const heurePassee = AUJOURDHUI.getHours() >= HEURE_NOTIF;
+			const dernierRattrapage = localStorage.getItem(CLE_NOTIFS + "_rattrapage");
+			const cleAujourdhui = `${AUJOURDHUI.getFullYear()}-${AUJOURDHUI.getMonth()}-${AUJOURDHUI.getDate()}`;
+
+			if (heurePassee && dernierRattrapage !== cleAujourdhui) {
+				obtenirIconeJour(4000).then(icone => {
+					obtenirImagesJour(4000).then(grandeImage => {
+						// Toujours pas déjà notifiée entre-temps ?
+						if (localStorage.getItem(CLE_NOTIFS + "_rattrapage") === cleAujourdhui) return;
+						afficherNotification(
+							`📅 ${AUJOURDHUI.getDate()} ${moisNoms[AUJOURDHUI.getMonth()]} — l'image du jour vous attend !`,
+							"Le calendrier est maintenant ouvert : découvrez l'image du jour.",
+							icone,
+							grandeImage
+						);
+						localStorage.setItem(CLE_NOTIFS + "_rattrapage", cleAujourdhui);
+					});
+				});
+			}
+		}
 		}
 
 		btnDossier.addEventListener("click", async () => {
@@ -5316,33 +5416,6 @@
 			characterData: true, // Surveille les modifications directes du texte (textContent)
 			subtree: false        // Surveille aussi les descendants si nécessaire
 		});
-
-		// ============================================================
-		// INITIALISATION DES NOTIFICATIONS
-		// (à la fin du script : moisNoms est maintenant déclaré)
-		// ============================================================
-		majBoutonNotifications();
-		if (notifsActivees() && "Notification" in window && Notification.permission === "granted") {
-			planifierNotification();
-
-			// Rattrapage : si l'heure de notification du jour est déjà
-			// passée (PC éteint la nuit, page fermée), on affiche le
-			// rappel immédiatement à l'ouverture de la page.
-			// Pour éviter le harcèlement, on ne le fait qu'une seule
-			// fois par jour (date mémorisée dans le localStorage).
-			const AUJOURDHUI = new Date();
-			const heurePassee = AUJOURDHUI.getHours() >= HEURE_NOTIF;
-			const dernierRattrapage = localStorage.getItem(CLE_NOTIFS + "_rattrapage");
-			const cleAujourdhui = `${AUJOURDHUI.getFullYear()}-${AUJOURDHUI.getMonth()}-${AUJOURDHUI.getDate()}`;
-
-			if (heurePassee && dernierRattrapage !== cleAujourdhui) {
-				afficherNotification(
-					`📅 ${AUJOURDHUI.getDate()} ${moisNoms[AUJOURDHUI.getMonth()]} — l'image du jour vous attend !`,
-					"Le calendrier est maintenant ouvert : découvrez l'image du jour."
-				);
-				localStorage.setItem(CLE_NOTIFS + "_rattrapage", cleAujourdhui);
-			}
-		}
 
 		if ("serviceWorker" in navigator && location.protocol !== "file:") {
 			navigator.serviceWorker.register("./sw.js").catch(() => {});
