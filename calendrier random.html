@@ -3399,10 +3399,8 @@
 			const cleAujourdhui = `${AUJOURDHUI.getFullYear()}-${AUJOURDHUI.getMonth()}-${AUJOURDHUI.getDate()}`;
 
 			if (heurePassee && dernierRattrapage !== cleAujourdhui) {
-			console.log(`${AUJOURDHUI.getDate()}`)
 				const lien = adventDoors.querySelector(`a[data-jour="${AUJOURDHUI.getDate()}"]`);
 				const imgElement = lien.querySelector("img");
-				console.log(`${imgElement.src}`)
 				afficherNotification(
 					`📅 ${AUJOURDHUI.getDate()} ${moisNoms[AUJOURDHUI.getMonth()]} — l'image du jour vous attend !`,
 					"Le calendrier est maintenant ouvert : découvrez l'image du jour.",
