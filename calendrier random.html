@@ -2492,18 +2492,24 @@
 			return "./calendrier-maskable-512.png";
 		}
 
-        function imageBanniereReduite(largeur = 512, ratio = 2) {
-			const jour = new Date().getDate();
-			const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
-			const image = lien ? lien.querySelector("img") : null;
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-				if (image && image.src && image.style.display !== "none" && image.complete) {
-					img.src = image.src
-				}
-                img.onload = () => {
+        async function imageBanniereReduite(largeur = 512, ratio = 2, delaiMaxMs = 4000) {
+            const jour = new Date().getDate();
+            const fin = Date.now() + delaiMaxMs;
+
+            while (Date.now() < fin) {
+                const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
+                const image = lien ? lien.querySelector("img") : null;
+
+                if (image && image.src && image.style.display !== "none" && image.complete) {
                     try {
-                        const coteH = Math.min(img.naturalHeight, img.naturalWidth / ratio);
+                        const dataUrl = await new Promise((resolve, reject) => {
+                            const img = new Image();
+                            img.onload = () => resolve(img);
+                            img.onerror = reject;
+                            img.src = image.src;
+                        });
+
+                        const coteH = Math.min(dataUrl.naturalHeight, dataUrl.naturalWidth / ratio);
                         const coteW = coteH * ratio;
                         const canvas = document.createElement("canvas");
                         canvas.width = largeur;
@@ -2511,18 +2517,20 @@
                         const ctx = canvas.getContext("2d");
                         // Bande centrée horizontalement et verticalement
                         ctx.drawImage(
-                            img,
-                            (img.naturalWidth - coteW) / 2, (img.naturalHeight - coteH) / 2, coteW, coteH,
+                            dataUrl,
+                            (dataUrl.naturalWidth - coteW) / 2, (dataUrl.naturalHeight - coteH) / 2, coteW, coteH,
                             0, 0, canvas.width, canvas.height
                         );
-                        resolve(canvas.toDataURL("image/jpeg", 0.85));
+                        return canvas.toDataURL("image/jpeg", 0.85);
                     } catch (e) {
-                        reject(e);
+                        break; // échec de conversion : on sort vers le repli
                     }
-                };
-                img.onerror = reject;
-                img.src = src;
-            });
+                }
+
+                await new Promise(r => setTimeout(r, 200)); // réessaie dans 200 ms
+            }
+
+            return null; // image du jour indisponible
         }
 
 		// Affiche une notification via le service worker quand il est
