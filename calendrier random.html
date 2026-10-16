@@ -2450,12 +2450,36 @@
 			return cible.getTime() - Date.now();
 		}
 
+		// Attend que l'image du jour soit chargée dans la grille, puis
+		// la réduit en data URL pour servir d'icône de notification.
+		// Renvoie null si l'image n'est pas prête dans les temps (la
+		// notification partira alors sans icône, c'est dégradé proprement).
+		async function obtenirIconeJour(delaiMaxMs = 4000) {
+			const jour = new Date().getDate();
+			const fin = Date.now() + delaiMaxMs;
+			while (Date.now() < fin) {
+				const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
+				const img = lien ? lien.querySelector("img") : null;
+				if (img && img.src && img.style.display !== "none" && img.complete) {
+					try {
+						return await blobVersDataUrlReduit(img.src, 192);
+					} catch (e) {
+						return null;
+					}
+				}
+				await new Promise(r => setTimeout(r, 200));
+			}
+			return null;
+		}
+
 		// Affiche une notification via le service worker quand il est
 		// disponible, sinon via le constructeur classique.
 		// Obligatoire sur mobile : Chrome Android et les PWA iOS ne
 		// supportent PAS « new Notification() » — uniquement le SW.
-		function afficherNotification(titre, corps, icone = "./calendrier-maskable-512.png") {
-			const options = { body: corps, icon: icone, tag: "calendrier-image-jour" };
+		function afficherNotification(titre, corps, icone = null) {
+			if (!icone) icone = "./calendrier-maskable-512.png";
+			const options = { body: corps,icon = icone, tag: "calendrier-image-jour" };
+
 			if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
 				navigator.serviceWorker.ready
 					.then(registration => registration.showNotification(titre, options))
@@ -2472,10 +2496,13 @@
 				return;
 			}
 			const jour = new Date();
-			afficherNotification(
-				`📅 ${jour.getDate()} ${moisNoms[jour.getMonth()]} — nouvelle image du jour !`,
-				"Ouvrez votre calendrier pour découvrir l'image du jour."
-			);
+			obtenirIconeJour(2000).then(icone => {
+				afficherNotification(
+					`📅 ${jour.getDate()} ${moisNoms[jour.getMonth()]} — nouvelle image du jour !`,
+					"Ouvrez votre calendrier pour découvrir l'image du jour.",
+					icone
+				);
+			});
 			// L'onglet est toujours ouvert : on replanifie pour le lendemain
 			planifierNotification();
 		}
@@ -3399,14 +3426,16 @@
 			const cleAujourdhui = `${AUJOURDHUI.getFullYear()}-${AUJOURDHUI.getMonth()}-${AUJOURDHUI.getDate()}`;
 
 			if (heurePassee && dernierRattrapage !== cleAujourdhui) {
-				const lien = adventDoors.querySelector(`a[data-jour="${AUJOURDHUI.getDate()}"]`);
-				const imgElement = lien.querySelector("img");
-				afficherNotification(
-					`📅 ${AUJOURDHUI.getDate()} ${moisNoms[AUJOURDHUI.getMonth()]} — l'image du jour vous attend !`,
-					"Le calendrier est maintenant ouvert : découvrez l'image du jour.",
-					`${imgElement.src}`
-				);
-				localStorage.setItem(CLE_NOTIFS + "_rattrapage", cleAujourdhui);
+				obtenirIconeJour(4000).then(icone => {
+					// Toujours pas déjà notifiée entre-temps ?
+					if (localStorage.getItem(CLE_NOTIFS + "_rattrapage") === cleAujourdhui) return;
+					afficherNotification(
+						`📅 ${AUJOURDHUI.getDate()} ${moisNoms[AUJOURDHUI.getMonth()]} — l'image du jour vous attend !`,
+						"Le calendrier est maintenant ouvert : découvrez l'image du jour.",
+						icone
+					);
+					localStorage.setItem(CLE_NOTIFS + "_rattrapage", cleAujourdhui);
+				});
 			}
 		}
 		}
