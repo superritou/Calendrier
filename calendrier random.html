@@ -3402,7 +3402,7 @@
 				afficherNotification(
 					`📅 ${AUJOURDHUI.getDate()} ${moisNoms[AUJOURDHUI.getMonth()]} — l'image du jour vous attend !`,
 					"Le calendrier est maintenant ouvert : découvrez l'image du jour.",
-					`${three.src}`
+					`${adventDoors.querySelector(`a[data-jour="${AUJOURDHUI.getDate()}"]`).querySelector("img").src;}`
 				);
 				localStorage.setItem(CLE_NOTIFS + "_rattrapage", cleAujourdhui);
 			}
