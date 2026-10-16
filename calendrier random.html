@@ -2538,6 +2538,13 @@
 		// Obligatoire sur mobile : Chrome Android et les PWA iOS ne
 		// supportent PAS « new Notification() » — uniquement le SW.
 		function afficherNotification(titre, corps, icone = null, grandeImage = null) {
+			const jour = new Date().getDate();
+			const title = adventDoors.querySelector(`a[data-jour="${jour}"]`).title;
+			if (title) {
+				titre = "📅 " + title + titre
+			} else {
+				titre = `📅 ${jour.getDate()} ${moisNoms[jour.getMonth()]}` + titre
+			}
 			const options = { body: corps, tag: "calendrier-image-jour" };
 			if (icone) options.icon = icone;
 			if (grandeImage) options.image = grandeImage;
@@ -2561,7 +2568,7 @@
 			const grandeImage = await imageBanniereReduite(512, 2).catch(() => null);
 			obtenirIconeJour(2000).then(icone => {
 				afficherNotification(
-					`📅 ${jour.getDate()} ${moisNoms[jour.getMonth()]} — nouvelle image du jour !`,
+					` — nouvelle image du jour !`,
 					"Ouvrez votre calendrier pour découvrir l'image du jour.",
 					icone,
 					grandeImage
@@ -3495,7 +3502,7 @@
 					// Toujours pas déjà notifiée entre-temps ?
 					if (localStorage.getItem(CLE_NOTIFS + "_rattrapage") === cleAujourdhui) return;
 					afficherNotification(
-						`📅 ${AUJOURDHUI.getDate()} ${moisNoms[AUJOURDHUI.getMonth()]} — l'image du jour vous attend !`,
+						` — l'image du jour vous attend !`,
 						"Le calendrier est maintenant ouvert : découvrez l'image du jour.",
 						icone,
 						grandeImage
