@@ -2478,7 +2478,7 @@
 		// supportent PAS « new Notification() » — uniquement le SW.
 		function afficherNotification(titre, corps, icone = null) {
 			if (!icone) icone = "./calendrier-maskable-512.png";
-			const options = { body: corps,icon = icone, tag: "calendrier-image-jour" };
+			const options = { body: corps, icon: icone, tag: "calendrier-image-jour" };
 
 			if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
 				navigator.serviceWorker.ready
