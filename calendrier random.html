@@ -3399,7 +3399,7 @@
 			const cleAujourdhui = `${AUJOURDHUI.getFullYear()}-${AUJOURDHUI.getMonth()}-${AUJOURDHUI.getDate()}`;
 
 			if (heurePassee && dernierRattrapage !== cleAujourdhui) {
-				const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
+				const lien = adventDoors.querySelector(`a[data-jour="${AUJOURDHUI.getDate()}"]`);
 				const imgElement = lien.querySelector("img");
 				afficherNotification(
 					`📅 ${AUJOURDHUI.getDate()} ${moisNoms[AUJOURDHUI.getMonth()]} — l'image du jour vous attend !`,
