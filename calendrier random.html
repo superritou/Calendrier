@@ -2500,7 +2500,7 @@
                 const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
                 const image = lien ? lien.querySelector("img") : null;
 
-                if (image && image.src && image.style.display !== "none" && image.complete) {
+                if (image && image.src && image.complete) {
                     try {
                         const dataUrl = await new Promise((resolve, reject) => {
                             const img = new Image();
