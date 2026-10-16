@@ -2523,7 +2523,7 @@
 		// disponible, sinon via le constructeur classique.
 		// Obligatoire sur mobile : Chrome Android et les PWA iOS ne
 		// supportent PAS « new Notification() » — uniquement le SW.
-		async function afficherNotification(titre, corps, icone = null, grandeImage = null) {
+		function afficherNotification(titre, corps, icone = null, grandeImage = null) {
 			const options = { body: corps, tag: "calendrier-image-jour" };
 			if (icone) options.icon = icone;
 			if (grandeImage) options.image = grandeImage;
@@ -2539,7 +2539,7 @@
 			}
 		}
 
-		function afficherNotificationDuJour() {
+		async function afficherNotificationDuJour() {
 			if (!notifsActivees() || !("Notification" in window) || Notification.permission !== "granted") {
 				return;
 			}
