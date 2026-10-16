@@ -2513,6 +2513,7 @@
 		function afficherNotification(titre, corps, icone = null, grandeImage = null) {
 			const options = { body: corps, tag: "calendrier-image-jour" };
 			if (icone) options.icon = icone;
+			if (grandeImage) options.image = grandeImage;
 
 			if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
 				navigator.serviceWorker.ready
