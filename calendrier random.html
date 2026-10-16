@@ -2450,10 +2450,31 @@
 			return cible.getTime() - Date.now();
 		}
 
-		// Attend que l'image du jour soit chargée dans la grille, puis
-		// la réduit en data URL pour servir d'icône de notification.
-		// Renvoie null si l'image n'est pas prête dans les temps (la
-		// notification partira alors sans icône, c'est dégradé proprement).
+		function imageCarreeReduite(src, taille = 192) {
+			return new Promise((resolve, reject) => {
+				const img = new Image();
+				img.onload = () => {
+					try {
+						const cote = Math.min(img.naturalWidth, img.naturalHeight);
+						const canvas = document.createElement("canvas");
+						canvas.width = canvas.height = taille;
+						const ctx = canvas.getContext("2d");
+						// Carré centré sur la photo, redimensionné d'un coup
+						ctx.drawImage(
+							img,
+							(img.naturalWidth - cote) / 2, (img.naturalHeight - cote) / 2, cote, cote,
+							0, 0, taille, taille
+						);
+						resolve(canvas.toDataURL("image/jpeg", 0.85));
+					} catch (e) {
+						reject(e);
+					}
+				};
+				img.onerror = reject;
+				img.src = src;
+			});
+		}
+
 		async function obtenirIconeJour(delaiMaxMs = 4000) {
 			const jour = new Date().getDate();
 			const fin = Date.now() + delaiMaxMs;
@@ -2462,14 +2483,15 @@
 				const img = lien ? lien.querySelector("img") : null;
 				if (img && img.src && img.style.display !== "none" && img.complete) {
 					try {
-						return await blobVersDataUrlReduit(img.src, 192);
+						return await imageCarreeReduite(img.src, 192);
 					} catch (e) {
-						return null;
+						break;
 					}
 				}
 				await new Promise(r => setTimeout(r, 200));
 			}
-			return null;
+			// Image du jour indisponible : icône du site par défaut
+			return "./calendrier-maskable-512.png";
 		}
 
 		// Affiche une notification via le service worker quand il est
@@ -2477,8 +2499,8 @@
 		// Obligatoire sur mobile : Chrome Android et les PWA iOS ne
 		// supportent PAS « new Notification() » — uniquement le SW.
 		function afficherNotification(titre, corps, icone = null) {
-			if (!icone) icone = "./calendrier-maskable-512.png";
-			const options = { body: corps, icon: icone, tag: "calendrier-image-jour" };
+			const options = { body: corps, tag: "calendrier-image-jour" };
+			if (icone) options.icon = icone;
 
 			if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
 				navigator.serviceWorker.ready
