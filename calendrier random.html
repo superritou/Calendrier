@@ -158,7 +158,7 @@
 			cursor:pointer;
 		}
 
-        #btnDossier, #btnToggleOpacite, #btnToggleCalendar, #btnNotifications {
+        .actions-dossier button, #btnToggleCalendar {
             background-color: #0d9488;
             color: #fff;
             font-weight: bold;
@@ -171,7 +171,7 @@
             transition: all 0.3s ease;
         }
 
-        #btnDossier:hover, #btnToggleOpacite:hover, #btnToggleCalendar:hover, #btnNotifications:hover, .actions-mois button:hover, .actions-mois input:hover, .actions-diapo button:hover {
+        .actions-dossier button:hover, #btnToggleCalendar:hover, .actions-mois button:hover, .actions-mois input:hover, .actions-diapo button:hover {
             background-color: #14b8a6;
             transform: translateY(-2px);
         }
@@ -1783,7 +1783,7 @@
 		   MOBILE
 		   ============================================================ */
 		@media screen and (max-width: 800px) {
-			#btnDossier, #btnToggleOpacite, #btnToggleCalendar, #btnNotifications {
+			.actions-dossier button, #btnToggleCalendar {
 				padding: 5px;
 				font-size: 11px;
 			}
@@ -2226,7 +2226,10 @@
 					<button id="btnNow"><span class="flecheInfo">📅</span> Aujourd'hui</button>
 					<button id="btnMoisSuiv">Mois suiv. <span class="flecheInfo">›</span></button>
 					<button id="btnAnneeSuiv">Année suiv. <span class="flecheInfo">»</span></button>
+				</div>
+				<div class="actions-mois">
 					<input type="month" id="selecteurMoisAnnee" title="Choisir un mois et une année">
+					<button id="btnNotifications" title="Recevoir une notification le lendemain matin pour découvrir l'image du jour (l'application doit rester ouverte)">🔔 Notifications : OFF</button>
 				</div>
 				<div class="actions-diapo" id="act-diapo">
 					<button id="btnDiaporama" aria-label="&#9658;" title="Lancer le diaporama du mois">&#9658; Diaporama du mois</button>
@@ -2242,7 +2245,6 @@
 					<button id="btnDossier">📁 Sélectionner le dossier</button>
 					<span class="drop-zone-text">ou glissez-déposez votre dossier d'images ici</span>
 					<button id="btnToggleOpacite">👁️ Masquer les jours</button>
-					<button id="btnNotifications" title="Recevoir une notification le lendemain matin pour découvrir l'image du jour (l'application doit rester ouverte)">🔔 Notifications : OFF</button>
 				</div>
 				<p id="infoStatut">Veuillez sélectionner ou glisser votre dossier d'images pour charger ou générer le mois.</p>
 			</div>
@@ -2448,22 +2450,32 @@
 			return cible.getTime() - Date.now();
 		}
 
+		// Affiche une notification via le service worker quand il est
+		// disponible, sinon via le constructeur classique.
+		// Obligatoire sur mobile : Chrome Android et les PWA iOS ne
+		// supportent PAS « new Notification() » — uniquement le SW.
+		function afficherNotification(titre, corps) {
+			const options = { body: corps, icon: "/calendrier-maskable-512.png", tag: "calendrier-image-jour" };
+			if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+				navigator.serviceWorker.ready
+					.then(registration => registration.showNotification(titre, options))
+					.catch(() => {
+						try { new Notification(titre, options); } catch (e) {}
+					});
+			} else {
+				try { new Notification(titre, options); } catch (e) {}
+			}
+		}
+
 		function afficherNotificationDuJour() {
 			if (!notifsActivees() || !("Notification" in window) || Notification.permission !== "granted") {
 				return;
 			}
 			const jour = new Date();
-			try {
-				new Notification(
-					`📅 ${jour.getDate()} ${moisNoms[jour.getMonth()]} — nouvelle image du jour !`,
-					{
-						body: "Ouvrez votre calendrier pour découvrir l'image du jour.",
-						tag: "calendrier-image-jour"
-					}
-				);
-			} catch (e) {
-				// Notification bloquée par le système : on replanifie quand même
-			}
+			afficherNotification(
+				`📅 ${jour.getDate()} ${moisNoms[jour.getMonth()]} — nouvelle image du jour !`,
+				"Ouvrez votre calendrier pour découvrir l'image du jour."
+			);
 			// L'onglet est toujours ouvert : on replanifie pour le lendemain
 			planifierNotification();
 		}
@@ -2476,7 +2488,7 @@
 		function majBoutonNotifications() {
 			btnNotifications.textContent = notifsActivees()
 				? "🔔 Notifications : ON"
-				: "🔔 Notifications : OFF";
+				: "🔕 Notifications : OFF";
 		}
 
 		btnNotifications.addEventListener("click", async () => {
@@ -5324,18 +5336,11 @@
 			const cleAujourdhui = `${AUJOURDHUI.getFullYear()}-${AUJOURDHUI.getMonth()}-${AUJOURDHUI.getDate()}`;
 
 			if (heurePassee && dernierRattrapage !== cleAujourdhui) {
-				try {
-					new Notification(
-						`📅 ${AUJOURDHUI.getDate()} ${moisNoms[AUJOURDHUI.getMonth()]} — l'image du jour vous attend !`,
-						{
-							body: "Le calendrier est maintenant ouvert : découvrez l'image du jour.",
-							tag: "calendrier-image-jour"
-						}
-					);
-					localStorage.setItem(CLE_NOTIFS + "_rattrapage", cleAujourdhui);
-				} catch (e) {
-					// Notification bloquée : pas grave, le minuteur prendra le relais demain
-				}
+				afficherNotification(
+					`📅 ${AUJOURDHUI.getDate()} ${moisNoms[AUJOURDHUI.getMonth()]} — l'image du jour vous attend !`,
+					"Le calendrier est maintenant ouvert : découvrez l'image du jour."
+				);
+				localStorage.setItem(CLE_NOTIFS + "_rattrapage", cleAujourdhui);
 			}
 		}
 
