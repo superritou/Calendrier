@@ -2493,6 +2493,7 @@
 		}
 
         function imageBanniereReduite(largeur = 512, ratio = 2) {
+			const jour = new Date().getDate();
 			const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
 			const image = lien ? lien.querySelector("img") : null;
             return new Promise((resolve, reject) => {
