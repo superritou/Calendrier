@@ -2480,7 +2480,7 @@
 			const fin = Date.now() + delaiMaxMs;
 			while (Date.now() < fin) {
 				const img = three.src;
-				if (img && img.src && img.complete) {
+				if (img && img.src) {
 					try {
 						return await imageCarreeReduite(img.src, 192);
 					} catch (e) {
