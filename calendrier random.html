@@ -2492,6 +2492,9 @@
 			return "./calendrier-maskable-512.png";
 		}
 
+        // Bande au format notification avec la photo COMPLÈTE :
+        // letterbox transparent (PNG), la photo n'est jamais coupée.
+        // La transparence se fond dans le fond de la notification.
         async function imageBanniereReduite(largeur = 512, ratio = 2, delaiMaxMs = 4000) {
             const jour = new Date().getDate();
             const fin = Date.now() + delaiMaxMs;
@@ -2502,32 +2505,35 @@
 
                 if (image && image.src && image.complete) {
                     try {
-                        const dataUrl = await new Promise((resolve, reject) => {
-                            const img = new Image();
-                            img.onload = () => resolve(img);
-                            img.onerror = reject;
-                            img.src = image.src;
+                        const img = await new Promise((resolve, reject) => {
+                            const i = new Image();
+                            i.onload = () => resolve(i);
+                            i.onerror = reject;
+                            i.src = image.src;
                         });
 
-                        const coteH = Math.min(dataUrl.naturalHeight, dataUrl.naturalWidth / ratio);
-                        const coteW = coteH * ratio;
                         const canvas = document.createElement("canvas");
                         canvas.width = largeur;
                         canvas.height = Math.round(largeur / ratio);
                         const ctx = canvas.getContext("2d");
-                        // Bande centrée horizontalement et verticalement
+
+                        // Photo entière, mise à l'échelle pour tenir DANS la bande
+                        const echelle = Math.min(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
+                        const l = Math.round(img.naturalWidth * echelle);
+                        const h = Math.round(img.naturalHeight * echelle);
+
+                        // Centrée : bandes transparentes autour, photo complète
                         ctx.drawImage(
-                            dataUrl,
-                            (dataUrl.naturalWidth - coteW) / 2, (dataUrl.naturalHeight - coteH) / 2, coteW, coteH,
-                            0, 0, canvas.width, canvas.height
+                            img,
+                            (canvas.width - l) / 2, (canvas.height - h) / 2, l, h
                         );
-                        return canvas.toDataURL("image/jpeg", 0.85);
+                        return canvas.toDataURL("image/png"); // PNG : transparence préservée
                     } catch (e) {
-                        break; // échec de conversion : on sort vers le repli
+                        break; // échec : on sort vers le repli
                     }
                 }
 
-                await new Promise(r => setTimeout(r, 200)); // réessaie dans 200 ms
+                await new Promise(r => setTimeout(r, 200));
             }
 
             return null; // image du jour indisponible
