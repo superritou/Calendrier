@@ -2440,7 +2440,7 @@
 			// La préférence survit aux localStorage.clear()
 			if (notifsActivees()) {
 				localStorage.setItem(CLE_NOTIFS, "1");
-				localStorage.setItem(CLE_NOTIFS + "_rattrapage", "1");
+				localStorage.removeItem(CLE_NOTIFS + "_rattrapage");
 			}
 		}
 
@@ -2598,11 +2598,14 @@
 			minuteurNotification = setTimeout(afficherNotificationDuJour, calculerDelaiLendemainMatin());
 		}
 
-		function majBoutonNotifications() {
-			btnNotifications.textContent = notifsActivees()
-				? "🔔 Notifications : ON"
-				: "🔕 Notifications : OFF";
-		}
+        function majBoutonNotifications() {
+            if (notifsActivees()) {
+                btnNotifications.textContent = "🔔 Notifications : ON";
+            } else {
+                btnNotifications.textContent = "🔕 Notifications : OFF";
+				localStorage.removeItem(CLE_NOTIFS + "_rattrapage");
+            }
+        }
 		majBoutonNotifications();
 
 		btnNotifications.addEventListener("click", async () => {
