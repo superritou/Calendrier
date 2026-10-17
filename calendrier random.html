@@ -2558,7 +2558,7 @@
 			} else {
 				titre = `📅 ${jour.getDate()} ${moisNoms[jour.getMonth()]}` + titre
 			}
-			const options = { body: corps, tag: "calendrier-image-jour" };
+			const options = { body: corps, tag: `calendrier-image-jour-${jour}` };
 			if (icone) options.icon = icone;
 			if (grandeImage) options.image = grandeImage;
 
