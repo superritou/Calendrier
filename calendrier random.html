@@ -2498,11 +2498,9 @@
             return "./calendrier-maskable-512.png";
         }
 
-        // TEST : image du jour avec largeur fixe et hauteur libre —
-        // la photo est redimensionnée à 512px de large (ou moins si
-        // l'original est plus petit) et garde TOUTE sa hauteur.
-        // On fournit au système l'image complète ; à voir comment
-        // l'OS (cadre ~2:1 fixe) la recadre à l'affichage.
+        // Bande au format notification avec la photo COMPLÈTE :
+        // letterbox transparent (PNG), la photo n'est jamais coupée.
+        // La transparence se fond dans le fond de la notification.
         async function imageBanniereReduite(largeur = 512, ratio = 2, delaiMaxMs = 4000) {
             const jour = new Date().getDate();
             const fin = Date.now() + delaiMaxMs;
@@ -2520,18 +2518,22 @@
                             i.src = image.src;
                         });
 
-                        // Largeur cible : 512, ou la largeur d'origine si plus petite
-                        const largeurCible = Math.min(img.naturalWidth, largeur);
-                        const hauteurCible = Math.round(img.naturalHeight * (largeurCible / img.naturalWidth));
-
                         const canvas = document.createElement("canvas");
-                        canvas.width = largeurCible;
-                        canvas.height = hauteurCible;
+                        canvas.width = largeur;
+                        canvas.height = Math.round(largeur / ratio);
                         const ctx = canvas.getContext("2d");
 
-                        // Photo complète, proportions d'origine conservées
-                        ctx.drawImage(img, 0, 0, largeurCible, hauteurCible);
-                        return canvas.toDataURL("image/png");
+                        // Photo entière, mise à l'échelle pour tenir DANS la bande
+                        const echelle = Math.min(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
+                        const l = Math.round(img.naturalWidth * echelle);
+                        const h = Math.round(img.naturalHeight * echelle);
+
+                        // Centrée : bandes transparentes autour, photo complète
+                        ctx.drawImage(
+                            img,
+                            (canvas.width - l) / 2, (canvas.height - h) / 2, l, h
+                        );
+                        return canvas.toDataURL("image/png"); // PNG : transparence préservée
                     } catch (e) {
                         break; // échec : on sort vers le repli
                     }
