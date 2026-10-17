@@ -2229,7 +2229,7 @@
 				</div>
 				<div class="actions-mois">
 					<input type="month" id="selecteurMoisAnnee" title="Choisir un mois et une année">
-					<button id="btnNotifications" title="Recevoir une notification le lendemain matin pour découvrir l'image du jour (l'application doit rester ouverte)">🔔 Notifications : OFF</button>
+					<button id="btnNotifications" title="Recevoir une notification le lendemain matin pour découvrir l'image du jour">🔔 Notifications : OFF</button>
 				</div>
 				<div class="actions-diapo" id="act-diapo">
 					<button id="btnDiaporama" aria-label="&#9658;" title="Lancer le diaporama du mois">&#9658; Diaporama du mois</button>
@@ -2359,7 +2359,7 @@
 		<div>🖱️ <strong>Clic simple</strong> sur un jour : image en plein écran.</div>
 		<div>🖱️ <strong>Double-clic</strong> sur un jour : choisir l'image de ce jour parmi vos photos.</div>
 		<div>📂 Naviguez entre les mois et les années avec les boutons ou le sélecteur de date.</div>
-		<div>🔔 Le bouton <strong>« Notifications »</strong> programme un rappel système le lendemain matin pour l'image du jour — à condition de laisser cette page ouverte (un onglet en arrière-plan suffit).</div>
+		<div>🔔 Le bouton <strong>« Notifications »</strong> programme un rappel système le lendemain matin pour l'image du jour.</div>
 		<div>🗑️ Le bouton <strong>« Réinitialiser les images »</strong> efface les images attribuées aux jours et en tire de nouvelles au hasard. Vos photos d'origine ne sont pas supprimées.</div>
 		<hr class="aide-separateur">
 		<div class="aide-confidentialite">🔒 Vos images ne quittent jamais votre appareil : tout est stocké localement dans votre navigateur, rien n'est envoyé sur Internet.</div>
@@ -2440,6 +2440,7 @@
 			// La préférence survit aux localStorage.clear()
 			if (notifsActivees()) {
 				localStorage.setItem(CLE_NOTIFS, "1");
+				localStorage.setItem(CLE_NOTIFS + "_rattrapage", "1");
 			}
 		}
 
