@@ -5474,7 +5474,7 @@
 			await new Promise(resolve => setTimeout(resolve, 150));
 
 			try {
-				const canvas = await capturerCalendrierHD(format);;
+				const canvas = await capturerCalendrierHD(format);
 				telechargerCanvas(canvas, `${titre}${format === "mobile" ? " (mobile)" : ""}.png`);
 			} catch (err) {
 				console.error("Erreur lors de l'export :", err);
