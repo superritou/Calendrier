@@ -5551,7 +5551,7 @@
                         await traiterDossierImages(window.derniersHandlesCharges, false);
                         convertirImagesEnBackground();
                     }
-
+					loaderOverlay.classList.remove("cache");
                     await new Promise(resolve =>
                         requestAnimationFrame(() => {
                             requestAnimationFrame(resolve);
