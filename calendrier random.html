@@ -2448,7 +2448,7 @@
 		// ============================================================
 
 		const CLE_NOTIFS = "calendrier_notifications";
-		const HEURE_NOTIF = 6; // heure du rappel du matin
+		const HEURE_NOTIF = 0; // heure du rappel du matin
 		const btnNotifications = document.getElementById("btnNotifications");
 		let minuteurNotification = null;
 
@@ -2619,7 +2619,7 @@
 		}
 
         function majBoutonNotifications() {
-            if (notifsActivees()) {
+            if (notifsActivees() && "Notification" in window && Notification.permission === "granted") {
                 btnNotifications.textContent = "🔔 Notifications : ON";
             } else {
                 btnNotifications.textContent = "🔕 Notifications : OFF";
@@ -2651,7 +2651,7 @@
 				return;
 			}
 			localStorage.setItem(CLE_NOTIFS, "1");
-			planifierNotification();
+			// planifierNotification();
 			majBoutonNotifications();
 			const lendemain = new Date(Date.now() + calculerDelaiLendemainMatin());
 			toast(
@@ -3528,7 +3528,7 @@
 			// (à la fin du script : moisNoms est maintenant déclaré)
 			// ============================================================
 			if (notifsActivees() && "Notification" in window && Notification.permission === "granted") {
-				planifierNotification();
+				// planifierNotification();
 
 				// Rattrapage : si l'heure de notification du jour est déjà
 				// passée (PC éteint la nuit, page fermée), on affiche le
@@ -3536,11 +3536,10 @@
 				// Pour éviter le harcèlement, on ne le fait qu'une seule
 				// fois par jour (date mémorisée dans le localStorage).
 				const AUJOURDHUI = new Date();
-				const heurePassee = AUJOURDHUI.getHours() >= HEURE_NOTIF;
 				const dernierRattrapage = localStorage.getItem(CLE_NOTIFS + "_rattrapage");
 				const cleAujourdhui = `${AUJOURDHUI.getFullYear()}-${AUJOURDHUI.getMonth()}-${AUJOURDHUI.getDate()}`;
 
-				if (heurePassee && dernierRattrapage !== cleAujourdhui) {
+				if (dernierRattrapage !== cleAujourdhui) {
 					const grandeImage = await imageBanniereReduite(512, 2).catch(() => null);
 					obtenirIconeJour(4000).then(icone => {
 						// Toujours pas déjà notifiée entre-temps ?
@@ -5445,7 +5444,6 @@
             if (jourImageActuel === null) return;
 
             // Choix du format dans la boîte de confirmation existante :
-            // « Bureau » à droite (valider), « Mobile » à gauche (annuler)
             const formatBureau = await confirmToast(
                 "🖼️ Dans quel format enregistrer cette image comme fond d'écran ?",
                 "🖥️ Bureau (1920×1080)",
