@@ -1726,30 +1726,16 @@
 		.confirm-actions button {
 			padding: 8px 16px;
 			border-radius: 8px;
+			color: white;
+			background: rgba(100,116,139,0.4);
 			border: 1px solid rgba(255,255,255,0.25);
 			cursor: pointer;
 			transition: all 0.3s ease;
 		}
 
-		#confirmAnnuler {
-			background: rgba(100,116,139,0.4);
-			color: white;
-		}
-
-		#confirmValider {
-			background: rgba(185,28,28,0.8);
-			color: white;
-		}
-
-		#confirmAnnuler:hover {
-			background: rgba(148, 163, 184, 0.4);
+		.confirm-actions button:hover {
+			background: rgba(100,116,139,0.8);
 			border-color: rgba(148, 163, 184, 0.6);
-			transform: translateY(-2px);
-		}
-
-		#confirmValider:hover {
-			background: #dc2626;
-			box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
 			transform: translateY(-2px);
 		}
 
@@ -2095,6 +2081,12 @@
 			pointer-events: none !important;
 		}
 
+		#calendrier.portrait {
+            --largeur-grille-export: 1000px;
+            width: 1080px !important;
+            height: 1920px !important;
+        }
+
 		#calendrier * {
 			cursor: none !important;
 		}
@@ -2203,6 +2195,11 @@
 			max-height: 200px;
 			border-radius: 10px;
 			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+		}
+
+		#calendrier.portrait #one, #calendrier.portrait #two, #calendrier.portrait #three {
+			max-width: calc(1080px / 2);
+			max-height: 500px;
 		}
 
 		#one, #two, #three {
@@ -2397,8 +2394,8 @@
 			<div id="confirmTitre" class="confirm-titre">Confirmation</div>
 			<div id="confirmMessage" class="confirm-message"></div>
 			<div class="confirm-actions">
-				<button id="confirmAnnuler" type="button">Non</button>
 				<button id="confirmValider" type="button">Oui</button>
+				<button id="confirmAnnuler" type="button">Non</button>
 			</div>
 		</div>
 	</div>
@@ -5164,11 +5161,14 @@
 		}
 
 		// Capture par le navigateur : clone de la page dans un SVG
-		async function capturerViaSVG() {
+		async function capturerViaSVG(format = "bureau") {
+            const L = (format === "mobile") ? 1080 : 1920;
+            const H = (format === "mobile") ? 1920 : 1080;
 			// 1. Clone de la page (le clone devient un div #calendrier,
 			//    ce qui lui donne exactement les styles du mode export)
 			const clone = document.createElement("div");
 			clone.id = "calendrier";
+			if (format === "mobile") clone.classList.add("portrait");
 			clone.innerHTML = document.body.innerHTML;
 			clone.querySelectorAll("script, .alerte-navigateur, .loader-overlay, #btnToggleCalendar, .menu, .twAudessus, .galerie-overlay, .galerie-apercu, .confirm-overlay, #toastContainer").forEach(s => s.remove());
 
@@ -5207,15 +5207,15 @@
 			const NS = "http://www.w3.org/2000/svg";
 			const svg = document.createElementNS(NS, "svg");
 			svg.setAttribute("xmlns", NS);
-			svg.setAttribute("width", String(1920 * FACTEUR_EXPORT));
-			svg.setAttribute("height", String(1080 * FACTEUR_EXPORT));
-			svg.setAttribute("viewBox", "0 0 1920 1080");
+			svg.setAttribute("width", String(L * FACTEUR_EXPORT));
+			svg.setAttribute("height", String(H * FACTEUR_EXPORT));
+			svg.setAttribute("viewBox", `0 0 ${L} ${H}`);
 
 			const zoneEtrangere = document.createElementNS(NS, "foreignObject");
 			zoneEtrangere.setAttribute("x", "0");
 			zoneEtrangere.setAttribute("y", "0");
-			zoneEtrangere.setAttribute("width", "1920");
-			zoneEtrangere.setAttribute("height", "1080");
+			zoneEtrangere.setAttribute("width", String(L));
+			zoneEtrangere.setAttribute("height", String(H));
 			zoneEtrangere.appendChild(clone);
 			svg.appendChild(zoneEtrangere);
 
@@ -5237,18 +5237,18 @@
 			});
 
 			const canvas = document.createElement("canvas");
-			canvas.width = 1920 * FACTEUR_EXPORT;
-			canvas.height = 1080 * FACTEUR_EXPORT;
+			canvas.width = L * FACTEUR_EXPORT;
+			canvas.height = H * FACTEUR_EXPORT;
 			// willReadFrequently dès la création : le renforcement lit
 			// ensuite les pixels sans avertissement ni ralentissement
 			canvas.getContext("2d", { willReadFrequently: true }).drawImage(image, 0, 0, canvas.width, canvas.height);
 			return canvas;
 		}
 
-		async function capturerCalendrierHD() {
+		async function capturerCalendrierHD(format = "bureau") {
 			let canvas;
 			try {
-				canvas = await capturerViaSVG();
+				canvas = await capturerViaSVG(format);
 				// Vérifie que le canvas est exploitable (pas de données interdites)
 				canvas.getContext("2d").getImageData(0, 0, 1, 1);
 			} catch (e) {
@@ -5455,8 +5455,16 @@
         });
 
 		document.getElementById("SaveImage").addEventListener("click", async () => {
+			// 🆕 Choix du format, même boîte que le fond d'écran
+            const formatBureau = await confirmToast(
+                "🖼️ Quel format pour l'image du mois ?",
+                "📱 Mobile (1080×1920)",
+                "🖥️ Bureau (1920×1080)"
+            );
+            const format = formatBureau ? "bureau" : "mobile";
 			convertirImagesEnBackground();
 			document.body.id = "calendrier";
+			if (format === "mobile") document.body.classList.add("portrait");
 			await new Promise(resolve =>
 				requestAnimationFrame(() => {
 					requestAnimationFrame(resolve);
@@ -5466,162 +5474,190 @@
 			await new Promise(resolve => setTimeout(resolve, 150));
 
 			try {
-				const canvas = await capturerCalendrierHD();
-				telechargerCanvas(canvas, `${titre}.png`);
-
+				const canvas = await capturerCalendrierHD(format);;
+				telechargerCanvas(canvas, `${titre}${format === "mobile" ? " (mobile)" : ""}.png`);
 			} catch (err) {
 				console.error("Erreur lors de l'export :", err);
 				infoStatut.textContent = "❌ Impossible de générer l'image.";
 			} finally {
 				document.body.removeAttribute("id");
+				document.body.classList.remove("portrait");
 			}
 		});
 
-		document.getElementById("SaveAnnee").addEventListener("click", async () => {
-			const moisInitial = moisAffiche;
-			const anneeInitiale = anneeAffilee;
-			const imagesZip = [];
+        document.getElementById("SaveAnnee").addEventListener("click", async () => {
+            // 🆕 Choix du format, même boîte que le fond d'écran
+            const formatBureau = await confirmToast(
+                "🖼️ Quel format pour les images de l'année ?",
+                "📱 Mobile (1080×1920)",
+                "🖥️ Bureau (1920×1080)"
+            );
+            const format = formatBureau ? "bureau" : "mobile";
+            const moisInitial = moisAffiche;
+            const anneeInitiale = anneeAffilee;
+            const imagesZip = [];
 
-			// 🆕 On pose la question AVANT de lancer la génération
-			const creerPlancheA4 = await confirmToast(
-				"Voulez-vous aussi créer une image A4 horizontale<br>regroupant les 12 mois de l'année ?"
-			);
+            // Dimensions réelles du canvas selon le format (pour le clamp de zone)
+            const L = (format === "mobile") ? 1080 : 1920;
+            const H = (format === "mobile") ? 1920 : 1080;
 
-			// 🆕 Planche A4 horizontale (297×210 mm à 300 DPI)
-			const A4_L = 3508, A4_H = 2480;
-			let planche = null, ctxPlanche = null, total = null;
-			if (creerPlancheA4) {
-				total = await confirmToast(
-					"Choix du rendu de la planche A4 :<br><br>" +
-					"✅ OUI = mois complets avec les photos latérales (vignettes larges)<br>" +
-					"❌ NON = calendriers seuls, rognés aux bords de la grille (plus grands et lisibles)"
-				);
-				planche = document.createElement("canvas");
-				planche.width = A4_L;
-				planche.height = A4_H;
-				ctxPlanche = planche.getContext("2d");
-				ctxPlanche.fillStyle = "#24283a"; // même fond que votre page
-				ctxPlanche.fillRect(0, 0, A4_L, A4_H);
-			}
+            // 🆕 On pose la question AVANT de lancer la génération
+            const creerPlancheA4 = await confirmToast(
+                "Voulez-vous aussi créer une image A4 horizontale<br>regroupant les 12 mois de l'année ?"
+            );
 
-			try {
-				for (let m = 0; m < 12; m++) {
-					moisAffiche = m;
-					infoStatut.textContent = `Génération de l'image pour ${moisNoms[m]} ${anneeAffilee}...`;
+            // 🆕 Planche A4 horizontale (297×210 mm à 300 DPI)
+            const A4_L = 3508, A4_H = 2480;
+            let planche = null, ctxPlanche = null, total = null;
+            if (creerPlancheA4) {
+                total = await confirmToast(
+                    "Choix du rendu de la planche A4 :",
+                    "Mois complets avec les photos latérales (vignettes larges)",
+                    "Calendriers seuls, rognés aux bords de la grille (plus grands et lisibles)"
+                );
+                planche = document.createElement("canvas");
+                planche.width = A4_L;
+                planche.height = A4_H;
+                ctxPlanche = planche.getContext("2d");
+                ctxPlanche.fillStyle = "#24283a"; // même fond que votre page
+                ctxPlanche.fillRect(0, 0, A4_L, A4_H);
+            }
 
-					construireGrilleCalendrier();
+            try {
+                for (let m = 0; m < 12; m++) {
+                    moisAffiche = m;
+                    infoStatut.textContent = `Génération de l'image pour ${moisNoms[m]} ${anneeAffilee}...`;
 
-					if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
-						await traiterDossierImages(window.derniersHandlesCharges, false);
-						convertirImagesEnBackground();
-					}
+                    construireGrilleCalendrier();
 
-					document.body.id = "calendrier";
+                    if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
+                        await traiterDossierImages(window.derniersHandlesCharges, false);
+                        convertirImagesEnBackground();
+                    }
 
-					await new Promise(resolve =>
-						requestAnimationFrame(() => {
-							requestAnimationFrame(resolve);
-						})
-					);
+                    document.body.id = "calendrier";
+                    if (format === "mobile") document.body.classList.add("portrait");
 
-					await new Promise(resolve => setTimeout(resolve, 150));
+                    await new Promise(resolve =>
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(resolve);
+                        })
+                    );
 
-					// 🆕 Mesure de la zone utile, déclarée à portée de la boucle
-					const rectUtile = document.querySelector(".-content").getBoundingClientRect();
-					const rectBody = document.body.getBoundingClientRect();
-					const zone = {
-						x: (rectUtile.left - rectBody.left) * FACTEUR_EXPORT,
-						y: (rectUtile.top - rectBody.top) * FACTEUR_EXPORT,
-						l: rectUtile.width * FACTEUR_EXPORT,
-						h: rectUtile.height * FACTEUR_EXPORT
-					};
-					zone.x = Math.max(0, zone.x);
-					zone.y = Math.max(0, zone.y);
-					zone.l = Math.max(0, Math.min(zone.l, 1920 * FACTEUR_EXPORT - zone.x));
-					zone.h = Math.max(0, Math.min(zone.h, 1080 * FACTEUR_EXPORT - zone.y));
+                    await new Promise(resolve => setTimeout(resolve, 150));
 
-					const canvas = await capturerCalendrierHD();
-					const blobMois = await canvasVersBlob(canvas);
-					imagesZip.push({ nom: `${String(m + 1).padStart(2, "0")} - ${titre}.png`, blob: blobMois });
-					infoStatut.textContent = `🖼️ ${titre} capturé (${m + 1}/12) — préparation de l'archive ZIP...`;
+                    // 🆕 Mesure de la zone utile, déclarée à portée de la boucle
+                    // Clamp aux dimensions RÉELLES du format choisi (L×H),
+                    // pas aux 1920×1080 en dur.
+                    const rectUtile = document.querySelector(".-content").getBoundingClientRect();
+                    const rectBody = document.body.getBoundingClientRect();
+                    const zone = {
+                        x: (rectUtile.left - rectBody.left) * FACTEUR_EXPORT,
+                        y: (rectUtile.top - rectBody.top) * FACTEUR_EXPORT,
+                        l: rectUtile.width * FACTEUR_EXPORT,
+                        h: rectUtile.height * FACTEUR_EXPORT
+                    };
+                    zone.x = Math.max(0, zone.x);
+                    zone.y = Math.max(0, zone.y);
+                    zone.l = Math.max(0, Math.min(zone.l, L * FACTEUR_EXPORT - zone.x));
+                    zone.h = Math.max(0, Math.min(zone.h, H * FACTEUR_EXPORT - zone.y));
 
-					// 🆕 Dessin du mois dans sa cellule de la planche A4 (3 col × 4 lignes)
-					if (planche) {
-						const marge = 10, gouttiere = 10; // 60 et 40
-						const zoneUtileL = A4_L - 2 * marge;
-						const zoneUtileH = A4_H - 2 * marge;
-						let nbCol = 4;   // 4 colonnes
-						let nbLignes = 3; // 3 lignes
-						if (total) {
-							nbCol = 3;   // 3 colonnes
-							nbLignes = 4; // 4 lignes
-						}
-						const celluleL = (zoneUtileL - (nbCol - 1) * gouttiere) / nbCol;
-						const celluleH = (zoneUtileH - (nbLignes - 1) * gouttiere) / nbLignes;
+                    const canvas = await capturerCalendrierHD(format);
+                    const blobMois = await canvasVersBlob(canvas);
+                    // 🆕 (accolade parasite après ${titre} corrigée)
+                    imagesZip.push({ nom: `${String(m + 1).padStart(2, "0")} - ${titre}${format === "mobile" ? " (mobile)" : ""}.png`, blob: blobMois });
+                    infoStatut.textContent = `🖼️ ${titre} capturé (${m + 1}/12) — préparation de l'archive ZIP...`;
 
-						const col = m % nbCol;
-						const ligne = Math.floor(m / nbCol);
-						const x = marge + col * (celluleL + gouttiere);
-						const y = marge + ligne * (celluleH + gouttiere);
+                    // 🆕 Dessin du mois dans sa cellule de la planche A4
+                    if (planche) {
+                        const marge = 10, gouttiere = 10; // 60 et 40
+                        const zoneUtileL = A4_L - 2 * marge;
+                        const zoneUtileH = A4_H - 2 * marge;
 
-						const src = total
-							? { x: 0, y: 0, l: canvas.width, h: canvas.height }
-							: zone;
+                        // Grille de cellules selon le format :
+                        // - bureau (mois paysages) : 4×3, ou 3×4 avec photos latérales
+                        // - mobile (mois portraits) : 6×2 dans tous les cas
+                        let nbCol, nbLignes;
+                        if (format === "mobile" && total) {
+                            nbCol = 6;
+                            nbLignes = 2;
+                        } else if (format === "mobile") { // rogné
+                            nbCol = 4;
+                            nbLignes = 3;
+                        } else if (total) { // bureau
+                            nbCol = 3;
+                            nbLignes = 4;
+                        } else { // bureau, rogné
+                            nbCol = 4;
+                            nbLignes = 3;
+                        }
+                        const celluleL = (zoneUtileL - (nbCol - 1) * gouttiere) / nbCol;
+                        const celluleH = (zoneUtileH - (nbLignes - 1) * gouttiere) / nbLignes;
 
-						const rapport = Math.min(celluleL / src.l, celluleH / src.h);
-						const largeurDessin = src.l * rapport;
-						const hauteurDessin = src.h * rapport;
+                        const col = m % nbCol;
+                        const ligne = Math.floor(m / nbCol);
+                        const x = marge + col * (celluleL + gouttiere);
+                        const y = marge + ligne * (celluleH + gouttiere);
 
-						ctxPlanche.drawImage(
-							canvas,
-							src.x, src.y, src.l, src.h,
-							x + (celluleL - largeurDessin) / 2,
-							y + (celluleH - hauteurDessin) / 2,
-							largeurDessin, hauteurDessin
-						);
-					}
+                        const src = total
+                            ? { x: 0, y: 0, l: canvas.width, h: canvas.height }
+                            : zone;
 
-					canvas.width = 1;
-					canvas.height = 1;
+                        const rapport = Math.min(celluleL / src.l, celluleH / src.h);
+                        const largeurDessin = src.l * rapport;
+                        const hauteurDessin = src.h * rapport;
 
-					console.log(
-						`Mois ${m + 1}/12 généré :`,
-						`${(blobMois.size / 1024 / 1024).toFixed(1)} Mo`
-					);
+                        ctxPlanche.drawImage(
+                            canvas,
+                            src.x, src.y, src.l, src.h,
+                            x + (celluleL - largeurDessin) / 2,
+                            y + (celluleH - hauteurDessin) / 2,
+                            largeurDessin, hauteurDessin
+                        );
+                    }
 
-					//await new Promise(resolve => setTimeout(resolve, 500));
-				}
+                    canvas.width = 1;
+                    canvas.height = 1;
 
-				infoStatut.textContent = "🗜️ Compression de l'archive ZIP...";
+                    console.log(
+                        `Mois ${m + 1}/12 généré :`,
+                        `${(blobMois.size / 1024 / 1024).toFixed(1)} Mo`
+                    );
 
-				if (planche) {
-					const blobPlanche = await canvasVersBlob(planche);
-					imagesZip.unshift({ nom: `Calendrier ${anneeAffilee}.png`, blob: blobPlanche });
-				}
+                    //await new Promise(resolve => setTimeout(resolve, 500));
+                }
 
-				const archiveZip = await creerZip(imagesZip);
-				telechargerBlob(archiveZip, `Calendrier ${anneeAffilee}.zip`);
+                infoStatut.textContent = "🗜️ Compression de l'archive ZIP...";
 
-				infoStatut.textContent = creerPlancheA4
-					? "✅ Année générée : archive ZIP des 12 mois + planche A4 téléchargées !"
-					: "✅ Année générée : archive ZIP des 12 mois téléchargée !";
-			} catch (err) {
-				console.error("Erreur lors de la génération annuelle :", err);
-				infoStatut.textContent = "Erreur lors de la génération de l'année.";
-			} finally {
-				// Restauration du mois et de l'année initiaux
-				moisAffiche = moisInitial;
-				anneeAffilee = anneeInitiale;
-				construireGrilleCalendrier();
-				if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
-					await traiterDossierImages(window.derniersHandlesCharges, false);
-				}
-				document.body.removeAttribute("id");
-				loaderOverlay.classList.add("cache");
-				planche = null;
-				ctxPlanche = null;
-			}
-		});
+                if (planche) {
+                    const blobPlanche = await canvasVersBlob(planche);
+                    imagesZip.unshift({ nom: `Calendrier ${anneeAffilee}${format === "mobile" ? " (mobile)" : ""}.png`, blob: blobPlanche });
+                }
+
+                const archiveZip = await creerZip(imagesZip);
+                telechargerBlob(archiveZip, `Calendrier ${anneeAffilee}${format === "mobile" ? " (mobile)" : ""}.zip`);
+
+                infoStatut.textContent = creerPlancheA4
+                    ? "✅ Année générée : archive ZIP des 12 mois + planche A4 téléchargées !"
+                    : "✅ Année générée : archive ZIP des 12 mois téléchargée !";
+            } catch (err) {
+                console.error("Erreur lors de la génération annuelle :", err);
+                infoStatut.textContent = "Erreur lors de la génération de l'année.";
+            } finally {
+                // Restauration du mois et de l'année initiaux
+                moisAffiche = moisInitial;
+                anneeAffilee = anneeInitiale;
+                construireGrilleCalendrier();
+                if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
+                    await traiterDossierImages(window.derniersHandlesCharges, false);
+                }
+                document.body.removeAttribute("id");
+                document.body.classList.remove("portrait");
+                loaderOverlay.classList.add("cache");
+                planche = null;
+                ctxPlanche = null;
+            }
+        });
 
 		const observer = new MutationObserver((mutationsList, observer) => {
 			for (const mutation of mutationsList) {
