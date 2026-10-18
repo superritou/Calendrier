@@ -5241,6 +5241,25 @@
 			// willReadFrequently dès la création : le renforcement lit
 			// ensuite les pixels sans avertissement ni ralentissement
 			canvas.getContext("2d", { willReadFrequently: true }).drawImage(image, 0, 0, canvas.width, canvas.height);
+
+			clone.style.position = "fixed";
+			clone.style.top = "0";
+			clone.style.left = "0";
+			clone.style.opacity = "0";
+			clone.style.pointerEvents = "none";
+			clone.style.zIndex = "-1";
+			document.body.appendChild(clone);
+
+			const rectClone = clone.getBoundingClientRect();
+			const rectUtile = clone.querySelector(".-content").getBoundingClientRect();
+			window.derniereZoneUtile = {
+				x: rectUtile.left - rectClone.left,
+				y: rectUtile.top - rectClone.top,
+				l: rectUtile.width,
+				h: rectUtile.height
+			};
+			clone.remove();
+
 			return canvas;
 		}
 
@@ -5461,8 +5480,7 @@
             );
             const format = formatBureau ? "bureau" : "mobile";
 			convertirImagesEnBackground();
-			document.body.id = "calendrier";
-			if (format === "mobile") document.body.classList.add("portrait");
+
 			await new Promise(resolve =>
 				requestAnimationFrame(() => {
 					requestAnimationFrame(resolve);
@@ -5472,14 +5490,15 @@
 			await new Promise(resolve => setTimeout(resolve, 150));
 
 			try {
+				infoStatut.textContent = `Génération de l'image pour ${titre}...`;
 				const canvas = await capturerCalendrierHD(format);
+				infoStatut.textContent = `🖼️ ${titre} capturé...`;
+				await new Promise(resolve => setTimeout(resolve, 150));
 				telechargerCanvas(canvas, `${titre}${format === "mobile" ? " (mobile)" : ""}.png`);
+				infoStatut.textContent = `✅ ${titre}${format === "mobile" ? " (mobile)" : ""} téléchargés !`
 			} catch (err) {
 				console.error("Erreur lors de l'export :", err);
 				infoStatut.textContent = "❌ Impossible de générer l'image.";
-			} finally {
-				document.body.removeAttribute("id");
-				document.body.classList.remove("portrait");
 			}
 		});
 
@@ -5533,9 +5552,6 @@
                         convertirImagesEnBackground();
                     }
 
-                    document.body.id = "calendrier";
-                    if (format === "mobile") document.body.classList.add("portrait");
-
                     await new Promise(resolve =>
                         requestAnimationFrame(() => {
                             requestAnimationFrame(resolve);
@@ -5544,27 +5560,22 @@
 
                     await new Promise(resolve => setTimeout(resolve, 150));
 
-                    // 🆕 Mesure de la zone utile, déclarée à portée de la boucle
+                    const canvas = await capturerCalendrierHD(format);
+					// 🆕 Mesure de la zone utile, déclarée à portée de la boucle
                     // Clamp aux dimensions RÉELLES du format choisi (L×H),
                     // pas aux 1920×1080 en dur.
-                    const rectUtile = document.querySelector(".-content").getBoundingClientRect();
-                    const rectBody = document.body.getBoundingClientRect();
-                    const zone = {
-                        x: (rectUtile.left - rectBody.left) * FACTEUR_EXPORT,
-                        y: (rectUtile.top - rectBody.top) * FACTEUR_EXPORT,
-                        l: rectUtile.width * FACTEUR_EXPORT,
-                        h: rectUtile.height * FACTEUR_EXPORT
-                    };
-                    zone.x = Math.max(0, zone.x);
-                    zone.y = Math.max(0, zone.y);
-                    zone.l = Math.max(0, Math.min(zone.l, L * FACTEUR_EXPORT - zone.x));
-                    zone.h = Math.max(0, Math.min(zone.h, H * FACTEUR_EXPORT - zone.y));
-
-                    const canvas = await capturerCalendrierHD(format);
+                    const z = window.derniereZoneUtile || { x: 0, y: 0, l: L, h: H };
+					const zone = {
+						x: Math.max(0, z.x) * FACTEUR_EXPORT,
+						y: Math.max(0, z.y) * FACTEUR_EXPORT,
+						l: Math.min(z.l, L - Math.max(0, z.x)) * FACTEUR_EXPORT,
+						h: Math.min(z.h, H - Math.max(0, z.y)) * FACTEUR_EXPORT
+					};
                     const blobMois = await canvasVersBlob(canvas);
                     // 🆕 (accolade parasite après ${titre} corrigée)
                     imagesZip.push({ nom: `${String(m + 1).padStart(2, "0")} - ${titre}${format === "mobile" ? " (mobile)" : ""}.png`, blob: blobMois });
                     infoStatut.textContent = `🖼️ ${titre} capturé (${m + 1}/12) — préparation de l'archive ZIP...`;
+					await new Promise(resolve => setTimeout(resolve, 150));
 
                     // 🆕 Dessin du mois dans sa cellule de la planche A4
                     if (planche) {
@@ -5626,6 +5637,7 @@
                 }
 
                 infoStatut.textContent = "🗜️ Compression de l'archive ZIP...";
+				await new Promise(resolve => setTimeout(resolve, 150));
 
                 if (planche) {
                     const blobPlanche = await canvasVersBlob(planche);
@@ -5649,8 +5661,6 @@
                 if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
                     await traiterDossierImages(window.derniersHandlesCharges, false);
                 }
-                document.body.removeAttribute("id");
-                document.body.classList.remove("portrait");
                 loaderOverlay.classList.add("cache");
                 planche = null;
                 ctxPlanche = null;
