@@ -2689,11 +2689,11 @@
 			}, duree);
 		}
 
-        function confirmToast(message, boutonGauche = "Non", boutonDroite = "Oui") {
+        function confirmToast(message, boutonGauche = "Oui", boutonDroite = "Non") {
             return new Promise(resolve => {
                 confirmMessage.innerHTML = message;
-                confirmAnnuler.textContent = boutonGauche;
-                confirmValider.textContent = boutonDroite;
+                confirmAnnuler.textContent = boutonDroite;
+                confirmValider.textContent = boutonGauche;
                 confirmOverlay.hidden = false;
 
                 const fermer = (resultat) => {
@@ -5448,8 +5448,8 @@
             // « Bureau » à droite (valider), « Mobile » à gauche (annuler)
             const formatBureau = await confirmToast(
                 "🖼️ Dans quel format enregistrer cette image comme fond d'écran ?",
-                "📱 Mobile (1080×1920)",
-                "🖥️ Bureau (1920×1080)"
+                "🖥️ Bureau (1920×1080)",
+                "📱 Mobile (1080×1920)"
             );
             await exporterFondEcran(jourImageActuel, formatBureau ? "bureau" : "mobile");
         });
@@ -5458,8 +5458,8 @@
 			// 🆕 Choix du format, même boîte que le fond d'écran
             const formatBureau = await confirmToast(
                 "🖼️ Quel format pour l'image du mois ?",
-                "📱 Mobile (1080×1920)",
-                "🖥️ Bureau (1920×1080)"
+                "🖥️ Bureau (1920×1080)",
+                "📱 Mobile (1080×1920)"
             );
             const format = formatBureau ? "bureau" : "mobile";
 			convertirImagesEnBackground();
@@ -5489,8 +5489,8 @@
             // 🆕 Choix du format, même boîte que le fond d'écran
             const formatBureau = await confirmToast(
                 "🖼️ Quel format pour les images de l'année ?",
-                "📱 Mobile (1080×1920)",
-                "🖥️ Bureau (1920×1080)"
+                "🖥️ Bureau (1920×1080)",
+                "📱 Mobile (1080×1920)"
             );
             const format = formatBureau ? "bureau" : "mobile";
             const moisInitial = moisAffiche;
@@ -5512,8 +5512,8 @@
             if (creerPlancheA4) {
                 total = await confirmToast(
                     "Choix du rendu de la planche A4 :",
-                    "Mois complets avec les photos latérales (vignettes larges)",
-                    "Calendriers seuls, rognés aux bords de la grille (plus grands et lisibles)"
+                    "Calendriers seuls, rognés aux bords de la grille (plus grands et lisibles)",
+                    "Mois complets avec les photos latérales (vignettes larges)"
                 );
                 planche = document.createElement("canvas");
                 planche.width = A4_L;
