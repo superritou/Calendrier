@@ -525,6 +525,17 @@
             color: #fbbf24;
         }
 
+		#btnFondEcran {
+            position: absolute;
+            top: 90px;
+            right: 20px;
+			display: none;
+		}
+
+		.twAudessus:has(.affiImg) #btnFondEcran {
+			display: flex;
+		}
+
         .twAudessus img.twImg {
             width: auto;
             height: auto;
@@ -1862,6 +1873,11 @@
 				right: 8px;
 			}
 
+			#btnFondEcran {
+				top: 60px;
+				right: 8px;
+			}
+
 			.diapo-vitesse-wrapper {
 				right: 8px;
 				padding: 5px;
@@ -2270,7 +2286,9 @@
 		<div class="fermer" title="Fermer" aria-label="Fermer">
 			<a href="#" id="btnFermerZoom">✕</a>
 		</div>
-
+		<div id="btnFondEcran" class="actions-diapo">
+			<button title="Exporter cette image comme fond d'écran">🖼️ Fond d'écran</button>
+		</div>
 		<div class="jourAffiche" id="jourAffiche">
 			<span id="numeroJourImage">Jour 1</span>
 		</div>
@@ -2669,27 +2687,32 @@
 			}, duree);
 		}
 
-		function confirmToast(message) {
-			return new Promise(resolve => {
-				confirmMessage.innerHTML = message;
-				confirmOverlay.hidden = false;
+        function confirmToast(message, boutonGauche = "Non", boutonDroite = "Oui") {
+            return new Promise(resolve => {
+                confirmMessage.innerHTML = message;
+                confirmAnnuler.textContent = boutonGauche;
+                confirmValider.textContent = boutonDroite;
+                confirmOverlay.hidden = false;
 
-				const fermer = (resultat) => {
-					confirmOverlay.hidden = true;
-					confirmAnnuler.removeEventListener("click", annuler);
-					confirmValider.removeEventListener("click", valider);
-					resolve(resultat);
-				};
+                const fermer = (resultat) => {
+                    confirmOverlay.hidden = true;
+                    confirmAnnuler.removeEventListener("click", annuler);
+                    confirmValider.removeEventListener("click", valider);
+                    // On restaure les libellés standard pour les prochains appels
+                    confirmAnnuler.textContent = "Non";
+                    confirmValider.textContent = "Oui";
+                    resolve(resultat);
+                };
 
-				const annuler = () => fermer(false);
-				const valider = () => fermer(true);
+                const annuler = () => fermer(false);
+                const valider = () => fermer(true);
 
-				confirmAnnuler.addEventListener("click", annuler);
-				confirmValider.addEventListener("click", valider);
+                confirmAnnuler.addEventListener("click", annuler);
+                confirmValider.addEventListener("click", valider);
 
-				confirmAnnuler.focus();
-			});
-		}
+                confirmAnnuler.focus();
+            });
+        }
 
 		// ============================================================
 		// DATE / CALENDRIER
@@ -3687,6 +3710,7 @@
 				modalZoom.appendChild(btnDiaporamaGlobal);
 				btnDiaporama.innerHTML = btnDiaporama.ariaLabel
 				modalZoom.appendChild(btnDiaporama);
+				imgPleinEcran.classList.add("affiImg");
 				imgPleinEcran.style.animation = 'none';
 				void imgPleinEcran.offsetHeight;
 				imgPleinEcran.style.animation = 'diapoAnim 0.4s ease-in-out forwards';
@@ -4174,6 +4198,7 @@
 				btnDiaporama.ariaLabel  = btnDiaporama.innerHTML;
 				btnDiaporama.title = "Arrêter le diaporama du mois";
 				imgPleinEcran.classList.add("diapo");
+				imgPleinEcran.classList.remove("affiImg");
 				modalZoom.title = "Arrêter le diaporama du mois";
 				modalZoom.style.cursor = "pointer";
 				document.querySelector(".twImgWrapper").title = "";
@@ -4299,6 +4324,7 @@
 					btnDiaporama.ariaLabel  = btnDiaporama.innerHTML;
 					btnDiaporama.title = "Lancer le diaporama du mois";
 					imgPleinEcran.classList.add("diapo");
+					imgPleinEcran.classList.remove("affiImg");
 					modalZoom.title = "Arrêter le diaporama global";
 					modalZoom.style.cursor = "pointer";
 					document.querySelector(".twImgWrapper").title = "";
@@ -4379,6 +4405,7 @@
 			btnDiaporama.innerHTML = "&#9658; Diaporama du mois";
 			btnDiaporamaGlobal.innerHTML = "&#9658; Diaporama global";
 			document.body.style.overflowY = "auto";
+			imgPleinEcran.classList.remove("affiImg");
 			window.location.hash = "#adventDoors";
 			history.replaceState(null, "", location.pathname + location.search);
 			setTimeout(() => { imgPleinEcran.removeAttribute("style");imgPleinEcran.style.display = "none";imgPleinEcran.removeAttribute("src"); }, 500);
@@ -4877,6 +4904,133 @@
             }
         });
 
+        // ============================================================
+        // EXPORT FOND D'ÉCRAN — rendu par le moteur CSS lui-même
+        // L'image est déclarée en background url(...) d'un élément
+        // portant EXACTEMENT les mêmes paramètres CSS que la page
+        // (center / repeat / contain...). Le tout est embarqué dans
+        // un SVG foreignObject, rendu par le navigateur, puis
+        // capturé dans un canvas. Sauvegarde directe, comme les
+        // autres exports : le fichier part dans Téléchargements,
+        // libre à l'utilisateur de le déplacer ensuite.
+        // ============================================================
+        async function exporterFondEcran(jour, format = "bureau") {
+            const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
+            const img = lien ? lien.querySelector("img") : null;
+            if (!img || !img.src || !img.complete) {
+                toast("La photo de ce jour n'est pas encore chargée.", "warning");
+                return false;
+            }
+
+            try {
+                // Gabarit : 1920×1080 (bureau) ou 1080×1920 (mobile)
+                const L = (format === "mobile") ? 1080 : 1920;
+                const H = (format === "mobile") ? 1920 : 1080;
+                const margeBas = (format === "mobile") ? 260 : 180;
+
+                // L'image source doit être embarquée en data URL : un SVG
+                // chargé comme image ne peut référencer que des URL internes.
+                const dataUrlPhoto = await new Promise((resolve, reject) => {
+                    const i = new Image();
+                    i.onload = () => {
+                        const c = document.createElement("canvas");
+                        c.width = i.naturalWidth;
+                        c.height = i.naturalHeight;
+                        c.getContext("2d").drawImage(i, 0, 0);
+                        resolve(c.toDataURL("image/jpeg", 0.92));
+                    };
+                    i.onerror = reject;
+                    i.src = img.src;
+                });
+
+                // Le mini-document : VOS paramètres CSS, à l'identique,
+                // avec l'image déclarée en background url(...)
+                const titreJour = lien.title || "";
+                const documentCss = `
+                    width: ${L}px;
+                    height: ${H}px;
+                    background-color: #24283a;
+                    background-image: url('${dataUrlPhoto}');
+                    background-position-x: center;
+                    background-position-y: center;
+                    background-repeat: initial;
+                    background-attachment: scroll;
+                    background-origin: initial;
+                    background-clip: initial;
+                    background-size: contain;
+                `;
+
+                // Titre en bas : style repris de #infoImg (pastille
+                // translucide, texte blanc, coins arrondis), avec
+                // retour à la ligne si le texte ne tient pas.
+                const styleTitre = `
+                    position: absolute;
+                    left: 50%;
+                    bottom: ${Math.round(margeBas / 2) - 30}px;
+                    transform: translateX(-50%);
+                    padding: 8px 14px;
+                    color: white;
+                    background: rgba(0, 0, 0, 0.65);
+                    border-radius: 8px;
+                    font-family: 'Lato', sans-serif;
+                    font-size: ${format === "mobile" ? 40 : 26}px;
+                    line-height: 1.4;
+                    white-space: normal;
+                    max-width: ${Math.round(L * 0.9)}px;
+                    text-align: center;
+                    opacity: 0.75;
+                `;
+                const html = `
+                    <div xmlns="http://www.w3.org/1999/xhtml" style="${documentCss}">
+                        <div style="${styleTitre}">${titreJour}</div>
+                    </div>
+                `;
+                const svg = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="${L}" height="${H}">
+                        <foreignObject width="100%" height="100%">${html}</foreignObject>
+                    </svg>
+                `;
+
+                // Le navigateur rend ce SVG (donc votre CSS) ; on le capture
+                const rendu = await new Promise((resolve, reject) => {
+                    const i = new Image();
+                    i.onload = () => resolve(i);
+                    i.onerror = reject;
+                    i.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+                });
+
+                const canvas = document.createElement("canvas");
+                canvas.width = L;
+                canvas.height = H;
+                canvas.getContext("2d").drawImage(rendu, 0, 0);
+
+                const nomFichier = `fond d'écran ${anneeAffilee}-${String(moisAffiche + 1).padStart(2, "0")} — jour ${jour} (${format}).jpg`;
+                canvas.toBlob(blob => {
+                    if (!blob) {
+                        // Repli : data URL si toBlob indisponible (comme ailleurs)
+                        const a = document.createElement("a");
+                        a.download = nomFichier;
+                        a.href = canvas.toDataURL("image/jpeg", 0.92);
+                        a.click();
+                        return;
+                    }
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.download = nomFichier;
+                    a.href = url;
+                    a.click();
+                    setTimeout(() => URL.revokeObjectURL(url), 10000);
+                }, "image/jpeg", 0.92);
+
+                toast(`🖼️ Fond d'écran « ${titreJour} » téléchargé (${format}).`, "success", 7000);
+                return true;
+            } catch (e) {
+                console.error(e);
+                toast("Échec de l'export du fond d'écran.", "error");
+                return false;
+            }
+        }
+
 		// ============================================================
 		// CAPTURE NATURELLE PAR LE NAVIGATEUR (SVG foreignObject)
 		// Le calendrier est cloné dans un SVG et c'est le vrai moteur
@@ -5280,6 +5434,20 @@
 			}
 			ctx.putImageData(sortie, 0, 0);
 		}
+
+        document.getElementById("btnFondEcran").addEventListener("click", async (e) => {
+            e.stopPropagation();
+            if (jourImageActuel === null) return;
+
+            // Choix du format dans la boîte de confirmation existante :
+            // « Bureau » à droite (valider), « Mobile » à gauche (annuler)
+            const formatBureau = await confirmToast(
+                "🖼️ Dans quel format enregistrer cette image comme fond d'écran ?",
+                "📱 Mobile (1080×1920)",
+                "🖥️ Bureau (1920×1080)"
+            );
+            await exporterFondEcran(jourImageActuel, formatBureau ? "bureau" : "mobile");
+        });
 
 		document.getElementById("SaveImage").addEventListener("click", async () => {
 			convertirImagesEnBackground();
