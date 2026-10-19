@@ -2432,11 +2432,20 @@
 				!btnAide.contains(e.target)) {
 				panneauAide.classList.remove("visible");
 			}
+
+			if (confirmOverlay.hidden === false &&
+				confirmOverlay.contains(e.target) &&
+				!confirmBoite.contains(e.target)) {
+				location.reload();
+			}
 		});
 
 		document.addEventListener("keydown", (e) => {
 			if (e.key === "Escape") {
 				panneauAide.classList.remove("visible");
+				if (confirmOverlay.hidden === false) {
+					location.reload();
+				}
 			}
 		});
 
@@ -2451,6 +2460,7 @@
 		const HEURE_NOTIF = 0; // heure du rappel du matin
 		const btnNotifications = document.getElementById("btnNotifications");
 		let minuteurNotification = null;
+		let notifsPrefActivees = false;
 
 		function notifsActivees() {
 			return localStorage.getItem(CLE_NOTIFS) === "1";
@@ -2458,7 +2468,7 @@
 
 		function sauverNotifications() {
 			// La préférence survit aux localStorage.clear()
-			if (notifsActivees()) {
+			if (notifsPrefActivees) {
 				localStorage.setItem(CLE_NOTIFS, "1");
 				localStorage.removeItem(CLE_NOTIFS + "_rattrapage");
 			}
@@ -2571,12 +2581,14 @@
 		// Obligatoire sur mobile : Chrome Android et les PWA iOS ne
 		// supportent PAS « new Notification() » — uniquement le SW.
 		function afficherNotification(titre = "", corps, icone = null, grandeImage = null) {
-			const jour = new Date().getDate();
-			const title = adventDoors.querySelector(`a[data-jour="${jour}"]`).title;
+			const aujourdhui = new Date();
+			const jour = aujourdhui.getDate();
+			const lienJour = adventDoors.querySelector(`a[data-jour="${jour}"]`);
+			const title = lienJour ? lienJour.title : null;
 			if (title) {
 				titre = "📅 " + title + titre
 			} else {
-				titre = `📅 ${jour.getDate()} ${moisNoms[jour.getMonth()]}` + titre
+				titre = `📅 ${joursNoms[aujourdhui.getDay()]} ${jour} ${moisNoms[aujourdhui.getMonth()]}` + titre;
 			}
 			const options = { body: corps, tag: `calendrier-image-jour-${jour}` };
 			if (icone) options.icon = icone;
@@ -2621,9 +2633,12 @@
         function majBoutonNotifications() {
             if (notifsActivees() && "Notification" in window && Notification.permission === "granted") {
                 btnNotifications.textContent = "🔔 Notifications : ON";
+				notifsPrefActivees = true;
             } else {
                 btnNotifications.textContent = "🔕 Notifications : OFF";
 				localStorage.removeItem(CLE_NOTIFS + "_rattrapage");
+				localStorage.removeItem(CLE_NOTIFS);
+				notifsPrefActivees = false;
             }
         }
 		majBoutonNotifications();
@@ -2653,12 +2668,25 @@
 			localStorage.setItem(CLE_NOTIFS, "1");
 			// planifierNotification();
 			majBoutonNotifications();
-			const lendemain = new Date(Date.now() + calculerDelaiLendemainMatin());
-			toast(
-				`🔔 Rappel programmé pour le ${lendemain.getDate()} ${moisNoms[lendemain.getMonth()]} à ${HEURE_NOTIF}h00.`,
-				"success",
-				8000
-			);
+			if ( notifsPrefActivees ) {
+				// const lendemain = new Date(Date.now() + calculerDelaiLendemainMatin());
+				// toast(
+				// 	`🔔 Rappel programmé pour le ${lendemain.getDate()} ${moisNoms[lendemain.getMonth()]} à ${HEURE_NOTIF}h00.`,
+				// 	"success",
+				// 	8000
+				// );
+				toast(
+					`🔔 La notification du jour s'affichera à votre prochaine visite.`,
+					"success",
+					8000
+				);
+			} else {
+				toast(
+					`🔔 Permission de notification refusée.`,
+					"error",
+					8000
+				);
+			}
 		});
 
 		// L'initialisation (réarmement + rattrapage) est faite à la
@@ -2673,6 +2701,7 @@
 		const confirmMessage = document.getElementById("confirmMessage");
 		const confirmAnnuler = document.getElementById("confirmAnnuler");
 		const confirmValider = document.getElementById("confirmValider");
+		const confirmBoite = document.querySelector(".confirm-boite");
 
 		function toast(message, type = "info", duree = 5500) {
 			const element = document.createElement("div");
@@ -2695,6 +2724,7 @@
                 confirmAnnuler.textContent = boutonDroite;
                 confirmValider.textContent = boutonGauche;
                 confirmOverlay.hidden = false;
+				document.activeElement.blur();
 
                 const fermer = (resultat) => {
                     confirmOverlay.hidden = true;
@@ -2711,8 +2741,6 @@
 
                 confirmAnnuler.addEventListener("click", annuler);
                 confirmValider.addEventListener("click", valider);
-
-                confirmAnnuler.focus();
             });
         }
 
