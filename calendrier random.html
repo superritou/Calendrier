@@ -348,6 +348,9 @@
 			background-origin: initial;
 			background-clip: initial;
 			background-size: contain;
+			-webkit-touch-callout: none;
+			-webkit-user-select: none;
+			user-select: none;
         }
 
 		#adventDoors li a.disabled {
@@ -403,6 +406,7 @@
             object-fit: cover;
             display: none;
             z-index: 1;
+			-webkit-touch-callout: none;
         }
 
         #adventDoors li a span {
@@ -473,7 +477,7 @@
 			align-items: center;
 		}
 
-        div.fermer, #modalZoom #btnDiaporama, #modalZoom #btnDiaporamaGlobal, .jourAffiche {
+        div.fermer, #modalZoom #btnDiaporama, #modalZoom #btnDiaporamaGlobal, .jourAffiche, #confirmAnnulation {
             position: absolute;
             top: 20px;
             right: 20px;
@@ -505,7 +509,7 @@
 			right: 160px;
 		}
 
-        div.fermer a {
+        div.fermer a, #confirmAnnulation {
 			color: white;
             font-size: 24px;
             text-decoration: none;
@@ -515,13 +519,13 @@
             height: 100%;
         }
 
-        div.fermer:hover, #modalZoom #btnDiaporama:hover, #modalZoom #btnDiaporamaGlobal:hover, .jourAffiche:hover {
+        div.fermer:hover, #modalZoom #btnDiaporama:hover, #modalZoom #btnDiaporamaGlobal:hover, .jourAffiche:hover, #confirmAnnulation:hover {
             background-color: rgba(15, 23, 42, 0.9);
             border-color: #fbbf24;
             transform: scale(1.1);
         }
 
-        div.fermer a:hover, #modalZoom #btnDiaporama:hover, #modalZoom #btnDiaporamaGlobal:hover, .jourAffiche:hover {
+        div.fermer a:hover, #modalZoom #btnDiaporama:hover, #modalZoom #btnDiaporamaGlobal:hover, .jourAffiche:hover, #confirmAnnulation:hover {
             color: #fbbf24;
         }
 
@@ -1696,6 +1700,7 @@
 		}
 
 		.confirm-boite {
+			position: absolute;
 			width: min(420px, calc(100vw - 40px));
 			padding: 20px;
 			border-radius: 14px;
@@ -1739,6 +1744,14 @@
 			transform: translateY(-2px);
 		}
 
+		#confirmAnnulation {
+			top: 8px;
+            right: 8px;
+            font-size: 20px;
+            height: 40px;
+            width: 40px;
+		}
+
 		.alerte-navigateur {
 			position: fixed;
 			top: 15px;
@@ -1775,6 +1788,41 @@
 		.alerte-navigateur button:hover {
 			background: #fbbf24;
 			transform: translateY(-2px);
+		}
+
+		/* ============================================================
+		   MENU CONTEXTUEL (clic droit sur un jour)
+		   ============================================================ */
+		.menu-contextuel {
+			position: fixed;
+			z-index: 200002;
+			min-width: 200px;
+			max-width: min(420px, calc(100vw - 20px));
+			padding: 12px 16px;
+			background: rgba(15, 23, 42, 0.98);
+			border: 2px ridge #2dd4bf;
+			border-radius: 12px;
+			box-shadow: 0 15px 50px rgba(0,0,0,0.6);
+			color: #e2e8f0;
+			font-family: "Lato", sans-serif;
+			font-size: 13px;
+			text-align: left;
+			line-height: 1.5;
+		}
+
+		.menu-contextuel[hidden] {
+			display: none;
+		}
+
+		.menu-contextuel .mc-titre {
+			color: #2dd4bf;
+			font-weight: bold;
+			margin-bottom: 6px;
+		}
+
+		.menu-contextuel .mc-fichier {
+			color: #fbbf24;
+			word-break: break-all;   /* les noms longs ne débordent pas */
 		}
 
 		/* ============================================================
@@ -2010,7 +2058,7 @@
 				color: #2dd4bf !important;
 			}
 
-			#adventDoors li.jour-semaine{
+			#adventDoors li.jour-semaine {
 				font-size: clamp(12px, 2vw, 24px) !important;
 				color: #fbbf24 !important;
 				border-color: #fbbf24 !important;
@@ -2123,14 +2171,14 @@
 			filter: none !important;
 		}
 
-		#calendrier #adventDoors li.jour-semaine{
+		#calendrier #adventDoors li.jour-semaine {
 			font-size: 20px !important;
 			color: #fbbf24 !important;
 			border-color: #fbbf24 !important;
 			height: 40px !important;
 		}
 
-		#calendrier #adventDoors li.numero-semaine{
+		#calendrier #adventDoors li.numero-semaine {
 			font-size: 20px !important;
 			color: #2dd4bf !important;
 		}
@@ -2391,6 +2439,7 @@
 	<!-- Confirmation personnalisée -->
 	<div id="confirmOverlay" class="confirm-overlay" hidden>
 		<div class="confirm-boite" role="dialog" aria-modal="true" aria-labelledby="confirmTitre">
+			<button id="confirmAnnulation" type="button" title="Annuler">✕</button>
 			<div id="confirmTitre" class="confirm-titre">Confirmation</div>
 			<div id="confirmMessage" class="confirm-message"></div>
 			<div class="confirm-actions">
@@ -2398,6 +2447,12 @@
 				<button id="confirmAnnuler" type="button">Non</button>
 			</div>
 		</div>
+	</div>
+
+	<!-- Menu contextuel du clic droit sur un jour -->
+	<div id="menuContextuel" class="menu-contextuel" hidden>
+		<div id="mcTitre" class="mc-titre"></div>
+		<div id="mcFichier" class="mc-fichier"></div>
 	</div>
 
 	<script>
@@ -2422,7 +2477,7 @@
 		const panneauAide = document.getElementById("panneauAide");
 
 		btnAide.addEventListener("click", (e) => {
-			e.stopPropagation();
+			// e.stopPropagation();
 			panneauAide.classList.toggle("visible");
 		});
 
@@ -2436,15 +2491,24 @@
 			if (confirmOverlay.hidden === false &&
 				confirmOverlay.contains(e.target) &&
 				!confirmBoite.contains(e.target)) {
-				location.reload();
+				confirmAnnulation.click();
+			}
+
+			if (!menuContextuel.hidden && !menuContextuel.contains(e.target)) {
+				fermerMenuContextuel();
 			}
 		});
 
 		document.addEventListener("keydown", (e) => {
 			if (e.key === "Escape") {
-				panneauAide.classList.remove("visible");
+				if (panneauAide.classList.contains("visible")) {
+					panneauAide.classList.remove("visible");
+				}
+				if (!menuContextuel.hidden) {
+					fermerMenuContextuel();
+				}
 				if (confirmOverlay.hidden === false) {
-					location.reload();
+					confirmAnnulation.click();
 				}
 			}
 		});
@@ -2693,22 +2757,71 @@
 		// fin du script, une fois toutes les constantes déclarées.
 
 		// ============================================================
+		// MENU CONTEXTUEL
+		// ============================================================
+
+		const menuContextuel = document.getElementById("menuContextuel");
+		const mcTitre = document.getElementById("mcTitre");
+		const mcFichier = document.getElementById("mcFichier");
+
+		function fermerMenuContextuel() {
+			menuContextuel.hidden = true;
+		}
+
+		// Écouteur délégué : un seul listener pour toute la grille
+		function AfficherContextMenu(jour, e) {
+			const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
+			if (!lien) return;
+
+			// Titre complet du jour (celui de l'info-bulle)
+			mcTitre.textContent = lien.title;
+
+			// Nom de l'image attribuée à ce jour : déjà présent sur le <img>
+			const image = lien.querySelector("img");
+			const nom = image ? (image.ariaLabel || image.alt) : null;
+			mcFichier.textContent = nom
+				? `🖼️ ${nom}`
+				: "🖼️ Aucune image attribuée";
+
+			// Position : au curseur, sans sortir de l'écran
+			menuContextuel.hidden = false;
+			const largeur = menuContextuel.offsetWidth;
+			const hauteur = menuContextuel.offsetHeight;
+			let x = e.clientX + 6;
+			let y = e.clientY + 6;
+			if (x + largeur > innerWidth) x = e.clientX - largeur - 6;
+			if (y + hauteur > innerHeight) y = e.clientY - hauteur - 6;
+			menuContextuel.style.left = `${x}px`;
+			menuContextuel.style.top = `${y}px`;
+		}
+
+		// Fermeture : molette
+		document.addEventListener("wheel", () => {
+			if (!menuContextuel.hidden) {
+				fermerMenuContextuel();
+			}
+		}, { passive: true });
+
+		// ============================================================
 		// NOTIFICATIONS ET CONFIRMATIONS
 		// ============================================================
 
 		const toastContainer = document.getElementById("toastContainer");
 		const confirmOverlay = document.getElementById("confirmOverlay");
+		const confirmTitre  = document.getElementById("confirmTitre");
 		const confirmMessage = document.getElementById("confirmMessage");
 		const confirmAnnuler = document.getElementById("confirmAnnuler");
 		const confirmValider = document.getElementById("confirmValider");
+		const confirmAnnulation = document.getElementById("confirmAnnulation");
 		const confirmBoite = document.querySelector(".confirm-boite");
 
-		function toast(message, type = "info", duree = 5500) {
+		async function toast(message, type = "info", duree = 5500) {
 			const element = document.createElement("div");
 			element.className = `toast ${type}`;
 			element.innerHTML = message;
 
 			toastContainer.appendChild(element);
+			await new Promise(resolve => setTimeout(resolve, 150));
 
 			setTimeout(() => {
 				element.classList.add("sortie");
@@ -2718,31 +2831,35 @@
 			}, duree);
 		}
 
-        function confirmToast(message, boutonGauche = "Oui", boutonDroite = "Non") {
-            return new Promise(resolve => {
-                confirmMessage.innerHTML = message;
-                confirmAnnuler.textContent = boutonDroite;
-                confirmValider.textContent = boutonGauche;
-                confirmOverlay.hidden = false;
+		function confirmToast(titre = "Confirmation", message, boutonGauche = "Oui", boutonDroite = "Non") {
+			return new Promise(resolve => {
+				confirmTitre.innerHTML = titre;
+				confirmMessage.innerHTML = message;
+				confirmAnnuler.textContent = boutonDroite;
+				confirmValider.textContent = boutonGauche;
+				confirmOverlay.hidden = false;
 				document.activeElement.blur();
 
-                const fermer = (resultat) => {
-                    confirmOverlay.hidden = true;
-                    confirmAnnuler.removeEventListener("click", annuler);
-                    confirmValider.removeEventListener("click", valider);
-                    // On restaure les libellés standard pour les prochains appels
-                    confirmAnnuler.textContent = "Non";
-                    confirmValider.textContent = "Oui";
-                    resolve(resultat);
-                };
+				const fermer = (resultat) => {
+					confirmOverlay.hidden = true;
+					confirmAnnuler.removeEventListener("click", annuler);
+					confirmValider.removeEventListener("click", valider);
+					confirmAnnulation.removeEventListener("click", annulation);
+					confirmAnnuler.textContent = "Non";
+					confirmValider.textContent = "Oui";
+					confirmAnnulation.hidden = true;
+					resolve(resultat);
+				};
 
-                const annuler = () => fermer(false);
-                const valider = () => fermer(true);
+				const annuler = () => fermer(false);      // « Non »  → false
+				const valider = () => fermer(true);       // « Oui »  → true
+				const annulation = () => fermer(null);    // « Annuler » → null = abandon
 
-                confirmAnnuler.addEventListener("click", annuler);
-                confirmValider.addEventListener("click", valider);
-            });
-        }
+				confirmAnnuler.addEventListener("click", annuler);
+				confirmValider.addEventListener("click", valider);
+				confirmAnnulation.addEventListener("click", annulation);
+			});
+		}
 
 		// ============================================================
 		// DATE / CALENDRIER
@@ -3112,9 +3229,6 @@
 
 				if (estFutur) {
 					a.classList.add("disabled");
-					a.addEventListener("contextmenu", (e) => {
-						e.preventDefault();
-					});
 				}
 
 				a.innerHTML = `<span>${i}</span><img loading="lazy" style="display: none;" alt="Jour ${i}">`;
@@ -3138,6 +3252,11 @@
 					e.preventDefault();
 					clearTimeout(timerClicPleinEcran);
 					ouvrirGalerie(Number(a.dataset.jour));
+				});
+
+				a.addEventListener("contextmenu", (e) => {
+					e.preventDefault();
+					AfficherContextMenu(Number(a.dataset.jour), e);
 				});
 
 				li.appendChild(a);
@@ -3609,7 +3728,7 @@
 		});
 
 		document.getElementById("btnResetImages").addEventListener("click", async () => {
-			if (await confirmToast("Voulez-vous vraiment effacer les images enregistrées ?")) {
+			if (await confirmToast(undefined, "Voulez-vous vraiment effacer les images enregistrées ?")) {
 				localStorage.clear();
 				sauverVitesseDiapo(); // la vitesse est une préférence : on la conserve
 				sauverNotifications(); // les notifications aussi
@@ -5197,7 +5316,7 @@
 			clone.id = "calendrier";
 			if (format === "mobile") clone.classList.add("portrait");
 			clone.innerHTML = document.body.innerHTML;
-			clone.querySelectorAll("script, .alerte-navigateur, .loader-overlay, #btnToggleCalendar, .menu, .twAudessus, .galerie-overlay, .galerie-apercu, .confirm-overlay, #toastContainer").forEach(s => s.remove());
+			clone.querySelectorAll("script, .alerte-navigateur, .loader-overlay, #btnToggleCalendar, .menu, .twAudessus, .galerie-overlay, .galerie-apercu, .confirm-overlay, #toastContainer, .aide-bouton, .panneau-aide, .menu-contextuel").forEach(s => s.remove());
 
 			// 2. Styles du <body> recopiés en inline (le clone n'est
 			//    plus un <body>, ses règles CSS ne s'appliquent pas)
@@ -5492,20 +5611,24 @@
 
             // Choix du format dans la boîte de confirmation existante :
             const formatBureau = await confirmToast(
+				"Choix",
                 "🖼️ Dans quel format enregistrer cette image comme fond d'écran ?",
                 "🖥️ Bureau (1920×1080)",
                 "📱 Mobile (1080×1920)"
             );
+			if (formatBureau === null) return;
             await exporterFondEcran(jourImageActuel, formatBureau ? "bureau" : "mobile");
         });
 
 		document.getElementById("SaveImage").addEventListener("click", async () => {
 			// 🆕 Choix du format, même boîte que le fond d'écran
             const formatBureau = await confirmToast(
+				"Choix",
                 "🖼️ Quel format pour l'image du mois ?",
                 "🖥️ Bureau (1920×1080)",
                 "📱 Mobile (1080×1920)"
             );
+			if (formatBureau === null) return;
             const format = formatBureau ? "bureau" : "mobile";
 			convertirImagesEnBackground();
 
@@ -5533,10 +5656,12 @@
         document.getElementById("SaveAnnee").addEventListener("click", async () => {
             // 🆕 Choix du format, même boîte que le fond d'écran
             const formatBureau = await confirmToast(
+				"Choix",
                 "🖼️ Quel format pour les images de l'année ?",
                 "🖥️ Bureau (1920×1080)",
                 "📱 Mobile (1080×1920)"
             );
+			if (formatBureau === null) return;
             const format = formatBureau ? "bureau" : "mobile";
             const moisInitial = moisAffiche;
             const anneeInitiale = anneeAffilee;
@@ -5548,18 +5673,22 @@
 
             // 🆕 On pose la question AVANT de lancer la génération
             const creerPlancheA4 = await confirmToast(
+				undefined,
                 "Voulez-vous aussi créer une image A4 horizontale<br>regroupant les 12 mois de l'année ?"
             );
+			if (creerPlancheA4 === null) return;
 
             // 🆕 Planche A4 horizontale (297×210 mm à 300 DPI)
             const A4_L = 3508, A4_H = 2480;
             let planche = null, ctxPlanche = null, total = null;
             if (creerPlancheA4) {
                 total = await confirmToast(
+					"Choix",
                     "Choix du rendu de la planche A4 :",
                     "Mois complets avec les photos latérales (vignettes larges)",
                     "Calendriers seuls, rognés aux bords de la grille (plus grands et lisibles)"
                 );
+				if (total === null) return;
                 planche = document.createElement("canvas");
                 planche.width = A4_L;
                 planche.height = A4_H;
