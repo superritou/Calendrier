@@ -140,7 +140,7 @@
         }
 
 		.actions-mois, .actions-diapo, .actions-dossier {
-			display: flex;
+			display: none;
 			gap: 8px;
 			justify-content: center;
 			align-items: center;
@@ -148,14 +148,18 @@
 			margin-bottom: 8px;
 		}
 
+		.actions-mois {
+			display: flex;
+		}
+
 		.actions-mois button, .actions-mois input, .actions-diapo button {
-			background:#0f766e;
+			background: #0f766e;
 			font-size: 13px;
-			color:#fff;
-			border:none;
-			padding:6px 12px;
-			border-radius:6px;
-			cursor:pointer;
+			color: #fff;
+			border: none;
+			padding: 6px 12px;
+			border-radius: 6px;
+			cursor: pointer;
 		}
 
         .actions-dossier button, #btnToggleCalendar {
@@ -187,7 +191,7 @@
 		#btnResetImages {
 			background-color: #b91c1c;
 			color: #fff;
-			border: 2px ridge #f87171;
+			border: none;
 			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
 			opacity: 0.45;
 		}
@@ -1499,6 +1503,17 @@
 			background: rgba(15, 23, 42, 0.9);
 		}
 
+        #btnMenuActions {
+            top: 8px;
+			padding-bottom: 5px;
+        }
+
+        /* Écran minimal : toutes les rangées d'actions sont masquées */
+        body.boutons-masques .actions-diapo,
+        body.boutons-masques .actions-dossier {
+            display: flex;
+        }
+
 		/* Masqué quand une fenêtre modale est ouverte (le bouton ⌨ prend le relais) */
 		.twAudessus:target ~ .aide-bouton,
 		.galerie-overlay.visible ~ .aide-bouton,
@@ -1844,6 +1859,11 @@
 		   MOBILE
 		   ============================================================ */
 		@media screen and (max-width: 800px) {
+			.actions-mois, .actions-diapo, .actions-dossier {
+				gap: 4px;
+				margin-bottom: 4px;
+			}
+
 			.actions-dossier button, #btnToggleCalendar, .actions-mois button, .actions-mois input, .actions-diapo button {
 				font-size: 11px;
 				padding: 5px;
@@ -1894,7 +1914,7 @@
 			}
 
 			.navImage {
-				width: 25px;
+				width: 35px;
 				height: 55px;
 				font-size: 32px;
 			}
@@ -2302,11 +2322,12 @@
 					<button id="btnNow"><span class="flecheInfo">📅</span> Aujourd'hui</button>
 					<button id="btnMoisSuiv">Mois suiv. <span class="flecheInfo">›</span></button>
 					<button id="btnAnneeSuiv">Année suiv. <span class="flecheInfo">»</span></button>
-				</div>
-				<div class="actions-mois">
 					<input type="month" id="selecteurMoisAnnee" title="Choisir un mois et une année">
+				</div>
+				<div class="actions-diapo">
 					<button id="btnNotifications" title="Recevoir une notification le lendemain matin pour découvrir l'image du jour">🔔 Notifications : OFF</button>
 					<button id="btnMasquerImageJour">👁️ Masquer les images des jours</button>
+					<button id="btnSauvegarde" title="Exporter ou importer vos attributions d'images">💾 Sauvegarde</button>
 				</div>
 				<div class="actions-diapo" id="act-diapo">
 					<button id="btnDiaporama" aria-label="&#9658;" title="Lancer le diaporama du mois">&#9658; Diaporama du mois</button>
@@ -2429,6 +2450,7 @@
         <button id="btnRaccourcisApercu" class="raccourcis-bouton" title="Raccourcis clavier" aria-label="Raccourcis clavier">⌨</button>
     </div>
 
+	<button id="btnMenuActions" class="aide-bouton" title="Afficher/Masquez le menu">➕</button>
 	<!-- Bouton d'aide et mode d'emploi (visible sur l'écran principal) -->
 	<button id="btnAide" class="aide-bouton" title="Mode d'emploi" aria-label="Mode d'emploi">?</button>
 	<div id="panneauAide" class="panneau-aide">
@@ -2440,6 +2462,8 @@
 		<div>🖱️ <strong>Clic droit</strong> sur un jour : affiche la date du jour et le nom de la photo.</div>
 		<div>📂 Naviguez entre les mois et les années avec les boutons ou le sélecteur de date.</div>
 		<div>🔔 Le bouton <strong>« Notifications »</strong> programme un rappel système le lendemain matin pour l'image du jour.</div>
+        <div>💾 Le bouton <strong>« Sauvegarde »</strong> exporte vos attributions d'images (jours et fonds d'écran) dans un fichier, ou restaure une sauvegarde précédente.</div>
+        <div>📂 Après une restauration sur un nouvel appareil, sélectionnez le même dossier d'images : vos photos se replacent automatiquement sur leurs jours.</div>
 		<div>🗑️ Le bouton <strong>« Réinitialiser les images »</strong> efface les images attribuées aux jours et en tire de nouvelles au hasard. Vos photos d'origine ne sont pas supprimées.</div>
 		<hr class="aide-separateur">
 		<div class="aide-confidentialite">🔒 Vos images ne quittent jamais votre appareil : tout est stocké localement dans votre navigateur, rien n'est envoyé sur Internet.</div>
@@ -2931,6 +2955,16 @@
 				confirmValider.textContent = boutonGauche;
 				confirmOverlay.hidden = false;
 				document.activeElement.blur();
+				if ( boutonGauche === false ) {
+					confirmValider.style.display = "none";
+				} else {
+					confirmValider.style.display = "";
+				}
+				if ( boutonDroite === false ) {
+					confirmAnnuler.style.display = "none";
+				} else {
+					confirmAnnuler.style.display = "";
+				}
 
 				const fermer = (resultat) => {
 					confirmOverlay.hidden = true;
@@ -3815,7 +3849,7 @@
 						if (localStorage.getItem(CLE_NOTIFS + "_rattrapage") === cleAujourdhui) return;
 						afficherNotification(
 							"",
-							"Le calendrier est maintenant ouvert : découvrez l'image du jour.",
+							"Découvrez l'image du jour.",
 							icone,
 							grandeImage
 						);
@@ -3825,7 +3859,7 @@
 			}
 		}
 
-		btnDossier.addEventListener("click", async () => {
+		async function selectionnerDossierImages( clearLocalStorage = true ) {
 			try {
 				const dirHandle = await window.showDirectoryPicker();
 				loaderOverlay.classList.remove("cache");
@@ -3833,9 +3867,11 @@
 				await sauvegarderDossier(dirHandle);
 				const rawHandles = await getFileHandlesFromDirectory(dirHandle);
 				if (rawHandles.length > 0) {
-					localStorage.clear();
-					sauverVitesseDiapo(); // la vitesse est une préférence : on la conserve
-					sauverNotifications(); // les notifications aussi
+					if (clearLocalStorage) {
+						localStorage.clear();
+						sauverVitesseDiapo(); // la vitesse est une préférence : on la conserve
+						sauverNotifications(); // les notifications aussi
+					}
 					await traiterDossierImages(rawHandles, true);
 				} else {
 					loaderOverlay.classList.add("cache");
@@ -3847,7 +3883,9 @@
 				console.log("Sélection annulée :", err);
 				infoStatut.textContent = "Sélection de dossier annulée.";
 			}
-		});
+		}
+
+		btnDossier.addEventListener("click", selectionnerDossierImages);
 
 		document.getElementById("btnResetImages").addEventListener("click", async () => {
 			if (await confirmToast(undefined, "Voulez-vous vraiment effacer les images enregistrées ?")) {
@@ -3860,6 +3898,96 @@
 				}
 			}
 		});
+
+        // ============================================================
+        // SAUVEGARDE / RESTAURATION DES ATTRIBUTIONS
+        // ============================================================
+        const btnSauvegarde = document.getElementById("btnSauvegarde");
+
+        // Export : attributions des jours + fonds d'écran vers un fichier JSON
+        async function exporterSauvegarde() {
+            const donnees = {};
+            Object.keys(localStorage).forEach(cle => {
+                if (cle.startsWith("calendrier_grille_") || cle.startsWith("calendrier_config_")) {
+                    donnees[cle] = localStorage.getItem(cle);
+                }
+            });
+
+            if (Object.keys(donnees).length === 0) {
+                toast("Rien à sauvegarder : sélectionnez d'abord un dossier.", "warning");
+                return;
+            }
+
+			const nomDossier = await recupererDossier();
+            donnees["_dossier"] = nomDossier?.name || "inconnu";
+
+            const handle = await window.showSaveFilePicker({
+                suggestedName: `calendrier-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`,
+                types: [{
+                    description: "Sauvegarde Mon Calendrier",
+                    accept: { "application/json": [".json"] }
+                }]
+            });
+
+            const writable = await handle.createWritable();
+            await writable.write(JSON.stringify(donnees, null, 2));
+            await writable.close();
+            toast(`💾 Sauvegarde exportée (${Object.keys(donnees).length} entrées) !`, "success");
+        }
+
+        // Import : ne restaure QUE les clés calendrier_grille_ / calendrier_config_
+        async function importerSauvegarde() {
+            const [handle] = await window.showOpenFilePicker({
+                types: [{
+                    description: "Sauvegarde Mon Calendrier",
+                    accept: { "application/json": [".json"] }
+                }],
+                multiple: false
+            });
+
+            const fichier = await handle.getFile();
+            let donnees;
+            try {
+                donnees = JSON.parse(await fichier.text());
+            } catch (e) {
+                toast("❌ Fichier illisible : ce n'est pas une sauvegarde valide.", "error");
+                return;
+            }
+
+            let nb = 0;
+            Object.entries(donnees).forEach(([cle, valeur]) => {
+                if (cle.startsWith("calendrier_grille_") || cle.startsWith("calendrier_config_")) {
+                    localStorage.setItem(cle, valeur);
+                    nb++;
+                }
+            });
+
+            if (nb === 0) {
+                toast("❌ Aucune donnée de calendrier dans ce fichier.", "error");
+                return;
+            }
+
+            // Application immédiate : même logique que « Réinitialiser les images »
+            construireGrilleCalendrier();
+			if (donnees["_dossier"]) {
+                toast(`📂 Dossier attendu pour cette sauvegarde : « ${donnees["_dossier"]} »`, "info", 15000);
+				const dossier = await confirmToast("📂 Informations", `Pour que la sauvegarde prenne effet réimporter le dossier : « ${donnees["_dossier"]} » maintenant`, "OK", "Annuler");
+				if (dossier === true) {
+					await selectionnerDossierImages(false);
+				}
+            }
+            toast(`📂 Sauvegarde importée (${nb} entrées restaurées) !`, "success");
+        }
+
+        btnSauvegarde.addEventListener("click", async () => {
+            const exporter = await confirmToast("💾 Sauvegarde", "Que voulez-vous faire ?", "📤 Exporter", "📥 Importer");
+            if (exporter === true) {
+                await exporterSauvegarde();
+            } else if (exporter === false) {
+                await importerSauvegarde();
+            }
+            // null (croix ✕) : abandon, rien à faire
+        });
 
 		let estMasqueCalendar = false;
 		btnToggleCalendar.addEventListener("click", () => {
@@ -3876,6 +4004,18 @@
 				li.style.opacity = estMasque ? "0" : "";
 			});
 		});
+
+        // ============================================================
+        // MENU DES ACTIONS : écran minimal par défaut
+        // ============================================================
+        const btnMenuActions = document.getElementById("btnMenuActions");
+        let menuActionsOuvert = false;
+
+        btnMenuActions.addEventListener("click", () => {
+            menuActionsOuvert = !menuActionsOuvert;
+            document.body.classList.toggle("boutons-masques", menuActionsOuvert);
+            btnMenuActions.textContent = menuActionsOuvert ? "❌" : "➕";
+        });
 
 		let dragCounter = 0;
 		document.addEventListener("dragenter", (e) => { e.preventDefault(); dragCounter++; document.body.classList.add("drag-active"); });
