@@ -393,6 +393,16 @@
             font-weight: bold;
         }
 
+        .badge-anniversaire {
+            position: absolute;
+            bottom: 2px;
+            right: 3px;
+            z-index: 3;
+            font-size: 13px;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+            display: inline-block;
+        }
+
         #adventDoors li a:hover {
             color: #fbbf24;
             border-color: #fbbf24;
@@ -1737,6 +1747,23 @@
 			margin-bottom: 20px;
 		}
 
+        .confirm-saisie {
+            width: 100%;
+            margin-bottom: 20px;
+            padding: 10px 12px;
+            border: 2px solid rgba(255,255,255,0.25);
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.95);
+            color: white;
+            font-family: "Lato", sans-serif;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .confirm-saisie:focus {
+            border-color: #fbbf24;
+        }
+
 		.confirm-actions {
 			display: flex;
 			justify-content: flex-end;
@@ -1852,7 +1879,7 @@
 			margin-bottom: 0px;
 		}
 
-		.menu-contextuel .mc-actions[hidden] {
+		.menu-contextuel .mc-actions[hidden], .menu-contextuel #mcAnniv[hidden] {
 			display: none;
 		}
 
@@ -1899,6 +1926,10 @@
 				padding: 5px;
 				grid-template-columns: 30px repeat(7, minmax(30px, 1fr));
 				border-width: 10px;
+			}
+
+			.badge-anniversaire {
+				font-size: 9px;
 			}
 
 			#adventDoors li.jour-semaine {
@@ -2479,6 +2510,7 @@
 			<button id="confirmAnnulation" type="button" title="Annuler">✕</button>
 			<div id="confirmTitre" class="confirm-titre">Confirmation</div>
 			<div id="confirmMessage" class="confirm-message"></div>
+			<input type="text" id="confirmSaisie" class="confirm-saisie" hidden>
 			<div class="confirm-actions">
 				<button id="confirmValider" type="button">Oui</button>
 				<button id="confirmAnnuler" type="button">Non</button>
@@ -2489,7 +2521,11 @@
 	<!-- Menu contextuel du clic droit sur un jour -->
 	<div id="menuContextuel" class="menu-contextuel" hidden>
 		<div id="mcTitre" class="mc-titre"></div>
+		<div id="mcAnniv" class="mc-fichier" hidden></div>
 		<div id="mcFichier" class="mc-fichier"></div>
+		<div class="mc-actions actions-mois">
+            <button id="mcAnniversaire" type="button">🎂 Anniversaire</button>
+        </div>
 		<div id="mcActions" class="mc-actions actions-mois" hidden>
 			<button id="mcAfficher" type="button">🖼️ Afficher l'image du jour</button>
 			<button id="mcChanger" type="button">🖼️ Changer l'image du jour</button>
@@ -2553,6 +2589,58 @@
 				}
 			}
 		});
+
+        // ============================================================
+        // ANNIVERSAIRES (récurrents : clé sans année, format "mois-jour")
+        // ============================================================
+        const CLE_ANNIVERSAIRES = "calendrier_anniversaires";
+
+        function getAnniversaires() {
+            return JSON.parse(localStorage.getItem(CLE_ANNIVERSAIRES)) || {};
+        }
+
+        function sauverAnniversaires(anniversaires) {
+            localStorage.setItem(CLE_ANNIVERSAIRES, JSON.stringify(anniversaires));
+        }
+
+        const mcAnniversaire = document.getElementById("mcAnniversaire");
+
+        mcAnniversaire.addEventListener("click", async () => {
+            if (mcJour === null) return;
+            fermerMenuContextuel();
+            const cle = `${moisAffiche + 1}-${mcJour}`;
+            const anniversaires = getAnniversaires();
+            const existant = anniversaires[cle];
+
+            if (existant) {
+                // Il y a déjà un anniversaire : supprimer, remplacer, ou abandon
+                const supprimer = await confirmToast("🎂 Anniversaire", `Ce jour a déjà « ${existant} ». Voulez-vous le supprimer ?`, "🗑️ Supprimer", "✏️ Remplacer");
+                if (supprimer === true) {
+                    delete anniversaires[cle];
+                    sauverAnniversaires(anniversaires);
+                    construireGrilleCalendrier();
+                    if (window.derniersHandlesCharges) {
+                        await traiterDossierImages(window.derniersHandlesCharges, false);
+                    }
+                    toast("🎂 Anniversaire supprimé.", "info");
+                    return;
+                }
+                if (supprimer === null) return; // croix ✕ : abandon
+                // false → on continue vers la saisie pour remplacer
+            }
+
+            // Pas d'anniversaire (ou remplacement) : saisie directe
+            const texte = await saisieToast("🎂 Anniversaire", existant ? "Nouveau texte de l'anniversaire :" : "Texte de l'anniversaire :", existant || "");
+            if (!texte) return;
+
+            anniversaires[cle] = texte;
+            sauverAnniversaires(anniversaires);
+            construireGrilleCalendrier();
+            if (window.derniersHandlesCharges) {
+                await traiterDossierImages(window.derniersHandlesCharges, false);
+            }
+            toast(`🎂 Anniversaire enregistré : « ${texte} »`, "success");
+        });
 
 		// ============================================================
 		// NOTIFICATIONS LOCALES (image du jour, le lendemain matin)
@@ -2808,6 +2896,7 @@
 
 		const menuContextuel = document.getElementById("menuContextuel");
 		const mcTitre = document.getElementById("mcTitre");
+		const mcAnniv = document.getElementById("mcAnniv");
 		const mcFichier = document.getElementById("mcFichier");
 		const mcActions = document.getElementById("mcActions");
 		const mcAfficher = document.getElementById("mcAfficher");
@@ -2845,6 +2934,15 @@
 			// Titre du jour
 			mcTitre.textContent = "📅 " + lien.title;
 
+			const div = lien.querySelector("div");
+			const anniv = div ? (div.title) : null;
+			if ( !(anniv === null) ) {
+				mcAnniv.textContent = `${anniv}`;
+				mcAnniv.hidden = false;
+			} else {
+				mcAnniv.hidden = true;
+			}
+
 			// Nom de l'image associée
 			const image = lien.querySelector("img");
 			const nom = image ? (image.ariaLabel || image.alt) : null;
@@ -2855,7 +2953,7 @@
 
 			const imageVisible = image && image.src && image.style.display !== "none" && !lien.classList.contains("disabled");
 			mcActions.hidden = !imageVisible;
-			mcJour = imageVisible ? jour : null;
+			mcJour = jour;
 
 			const marge = 8;
 
@@ -2987,6 +3085,51 @@
 				confirmAnnulation.addEventListener("click", annulation);
 			});
 		}
+
+        // Variante « saisie » du confirmToast : renvoie le texte saisi,
+        // ou null si annulé (✕ ou Échap). Entrée ou bouton OK = valider.
+        function saisieToast(titre = "Saisie", message, valeur = "") {
+            return new Promise(resolve => {
+                const confirmSaisie = document.getElementById("confirmSaisie");
+                confirmTitre.innerHTML = titre;
+                confirmMessage.innerHTML = message;
+                confirmSaisie.value = valeur || "";
+                confirmAnnuler.style.display = "none";
+                confirmValider.textContent = "OK";
+                confirmSaisie.hidden = false;
+                confirmOverlay.hidden = false;
+                document.activeElement.blur();
+                confirmSaisie.focus();
+                confirmSaisie.select();
+
+                const fermer = (resultat) => {
+                    confirmOverlay.hidden = true;
+                    confirmSaisie.hidden = true;
+                    confirmAnnuler.style.display = "";
+                    confirmValider.textContent = "Oui"; // remise à l'état confirmToast
+                    confirmSaisie.removeEventListener("keydown", surTouche);
+                    confirmValider.removeEventListener("click", valider);
+                    confirmAnnulation.removeEventListener("click", annuler);
+                    resolve(resultat);
+                };
+
+                const annuler = () => fermer(null);
+                const valider = () => fermer(confirmSaisie.value.trim());
+                const surTouche = (e) => {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        fermer(confirmSaisie.value.trim());
+                    } else if (e.key === "Escape") {
+                        e.preventDefault();
+                        fermer(null);
+                    }
+                };
+
+                confirmSaisie.addEventListener("keydown", surTouche);
+                confirmValider.addEventListener("click", valider);
+                confirmAnnulation.addEventListener("click", annuler);
+            });
+        }
 
 		// ============================================================
 		// DATE / CALENDRIER
@@ -3289,7 +3432,8 @@
 			"dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"
 		];
 
-		let titre = "Mon Calendrier"
+		let titre = "Mon Calendrier";
+		let annivJourDejaAffiche = false;
 
 		function construireGrilleCalendrier() {
 			const dateCible = new Date(anneeAffilee, moisAffiche, 1);
@@ -3390,6 +3534,15 @@
 
 				a.innerHTML = `<span>${i}</span><img loading="lazy" style="display: none; ${visibile}" alt="Jour ${i}">`;
 
+				const texteAnniv = getAnniversaires()[`${moisAffiche + 1}-${i}`];
+                if (texteAnniv) {
+                    const badge = document.createElement("div");
+                    badge.className = "badge-anniversaire";
+                    badge.textContent = "🎂";
+					badge.title = `🎂 ${texteAnniv}`;
+                    a.appendChild(badge);
+                }
+
 				a.addEventListener("click", (e) => {
 					if (suppressClick) {
 						e.preventDefault();
@@ -3421,6 +3574,12 @@
 			}
 			window.location.hash = "#adventDoors";
 			history.replaceState(null, "", location.pathname + location.search);
+
+			const jourAnniv = getAnniversaires()[`${moisAffiche + 1}-${jourActuelDuMois}`];
+			if (jourAnniv && !annivJourDejaAffiche) {
+				annivJourDejaAffiche = true;
+				confirmToast("🎂 Anniversaire du jour", `${jourAnniv}`, "OK", false);
+            }
 		}
 
 		construireGrilleCalendrier()
@@ -3909,7 +4068,7 @@
         async function exporterSauvegarde() {
             const donnees = {};
             Object.keys(localStorage).forEach(cle => {
-                if (cle.startsWith("calendrier_grille_") || cle.startsWith("calendrier_config_")) {
+                if (cle.startsWith("calendrier_grille_") || cle === CLE_ANNIVERSAIRES || cle.startsWith("calendrier_config_")) {
                     donnees[cle] = localStorage.getItem(cle);
                 }
             });
@@ -3957,7 +4116,7 @@
 
             let nb = 0;
             Object.entries(donnees).forEach(([cle, valeur]) => {
-                if (cle.startsWith("calendrier_grille_") || cle.startsWith("calendrier_config_")) {
+                if (cle.startsWith("calendrier_grille_") || cle === CLE_ANNIVERSAIRES || cle.startsWith("calendrier_config_")) {
                     localStorage.setItem(cle, valeur);
                     nb++;
                 }
