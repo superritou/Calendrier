@@ -2665,6 +2665,11 @@
 			const jour = aujourdhui.getDate();
 			const lienJour = adventDoors.querySelector(`a[data-jour="${jour}"]`);
 			const title = lienJour ? lienJour.title : null;
+			const image = lienJour.querySelector("img");
+			const nom = image ? (image.ariaLabel || image.alt) : null;
+			if (nom) {
+				option = `${option} «${nom}»`
+			}
 			if (title) {
 				titre = "📅 " + title + titre
 			} else {
