@@ -5170,32 +5170,46 @@
 
 		// --- ÉVÉNEMENTS TACTILES POUR LE DÉPLACEMENT SUR MOBILE ---
 		imgPleinEcran.addEventListener("touchstart", (e) => {
-			if (!activeImg || !imgPleinEcran.classList.contains("zoomed")) return;
-			if (e.touches.length === 1 && scale > save) { // Un seul doigt et image zoomée
+			if (!activeImg || !activeImg.classList.contains("zoomed")) return;
+
+			if (e.touches.length === 1 && scale > save) {
 				panning = true;
 				hasMoved = false;
+
 				startX = e.touches[0].clientX - pointX;
 				startY = e.touches[0].clientY - pointY;
 			}
-		});
+		}, { passive: true });
 
 		imgPleinEcran.addEventListener("touchmove", (e) => {
 			if (!panning || !activeImg || e.touches.length !== 1) return;
+
+			e.preventDefault();
 			masquerRaccourcis();
+
 			hasMoved = true;
+
 			pointX = e.touches[0].clientX - startX;
 			pointY = e.touches[0].clientY - startY;
+
 			updateTransform(activeImg);
-		});
+		}, { passive: false });
 
 		imgPleinEcran.addEventListener("touchend", () => {
 			if (panning) {
 				panning = false;
+
 				if (hasMoved) {
 					suppressClick = true;
-					setTimeout(() => { suppressClick = false; }, 150);
+					setTimeout(() => {
+						suppressClick = false;
+					}, 150);
 				}
 			}
+		});
+
+		imgPleinEcran.addEventListener("touchcancel", () => {
+			panning = false;
 		});
 
 		(async function chargerDossierAuDemarrage() {
