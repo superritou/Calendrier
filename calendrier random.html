@@ -4078,7 +4078,7 @@
         // ============================================================
         const btnSauvegarde = document.getElementById("btnSauvegarde");
 
-        // Export : attributions des jours + fonds d'écran vers un fichier JSON
+        // Export : attributions des jours + anniversaires + fonds d'écran vers un fichier JSON
         async function exporterSauvegarde() {
             const donnees = {};
             Object.keys(localStorage).forEach(cle => {
@@ -4092,21 +4092,55 @@
                 return;
             }
 
-			const nomDossier = await recupererDossier();
+            const nomDossier = await recupererDossier();
             donnees["_dossier"] = nomDossier?.name || "inconnu";
 
-            const handle = await window.showSaveFilePicker({
-                suggestedName: `calendrier-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`,
-                types: [{
-                    description: "Sauvegarde Mon Calendrier",
-                    accept: { "application/json": [".json"] }
-                }]
-            });
+            const donneesStr = JSON.stringify(donnees, null, 2);
+            const nomFichier = `calendrier-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
+            let exportReussi = false;
 
-            const writable = await handle.createWritable();
-            await writable.write(JSON.stringify(donnees, null, 2));
-            await writable.close();
-            toast(`💾 Sauvegarde exportée (${Object.keys(donnees).length} entrées) !`, "success");
+            if (window.showSaveFilePicker) {
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: nomFichier,
+                    types: [{
+                        description: "Sauvegarde Mon Calendrier",
+                        accept: { "application/json": [".json"] }
+                    }]
+                });
+                const writable = await handle.createWritable();
+                await writable.write(donneesStr);
+                await writable.close();
+
+                // Vérification : certains navigateurs (Opera mobile) ferment le flux sans écrire
+                const fichierEcrit = await handle.getFile();
+                if (fichierEcrit.size > 0) {
+                    exportReussi = true;
+                } else {
+                    // Une tentative de réécriture avant de passer au fallback
+                    try {
+                        const writable2 = await handle.createWritable();
+                        await writable2.write(donneesStr);
+                        await writable2.close();
+                        exportReussi = (await handle.getFile()).size > 0;
+                    } catch (e) { /* on passera au Blob */ }
+                }
+            }
+
+            if (!exportReussi) {
+                // Fallback universel : téléchargement direct vers Téléchargements
+                const blob = new Blob([donneesStr], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = nomFichier;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 5000);
+                toast("💾 Sauvegarde exportée via téléchargement (le navigateur n'a pas su écrire le fichier choisi).", "info");
+            } else {
+                toast(`💾 Sauvegarde exportée (${Object.keys(donnees).length} entrées) !`, "success");
+            }
         }
 
         // Import : ne restaure QUE les clés calendrier_grille_ / calendrier_config_
