@@ -5175,7 +5175,12 @@
 
 		// Début du geste
 		imgPleinEcran.addEventListener("touchstart", (e) => {
-			if (!activeImg || !activeImg.classList.contains("zoomed")) return;
+			const img = e.target.closest('.twImgWrapper img.twImg');
+			if (!img || !img.classList.contains('zoomed')) return;
+			masquerRaccourcis();
+
+			e.preventDefault();
+			activeImg = img;
 
 			if (e.touches.length === 2) {
 				// Zoom par pincement
@@ -5202,6 +5207,7 @@
 		// Mouvement des doigts
 		imgPleinEcran.addEventListener("touchmove", (e) => {
 			if (!activeImg || !activeImg.classList.contains("zoomed")) return;
+			masquerRaccourcis();
 
 			if (e.touches.length === 2 && distancePinch > 0) {
 				// Zoom par pincement
