@@ -5169,31 +5169,32 @@
 		}, { passive: false });
 
 		// --- ÉVÉNEMENTS TACTILES POUR LE DÉPLACEMENT SUR MOBILE ---
-		imgPleinEcran.addEventListener("touchstart", (e) => {
-			if (!activeImg || !activeImg.classList.contains("zoomed")) return;
+        // Pincement mobile : écouter les touches sur l'image
+        let distancePinch = 0;
+        let echelleDepart = 1;
 
-			if (e.touches.length === 1 && scale > save) {
-				panning = true;
-				hasMoved = false;
+        img.addEventListener("touchstart", (e) => {
+            if (e.touches.length === 2) {
+                distancePinch = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                echelleDepart = parseFloat(img.dataset.echelle || "1");
+            }
+        }, { passive: false });
 
-				startX = e.touches[0].clientX - pointX;
-				startY = e.touches[0].clientY - pointY;
-			}
-		}, { passive: true });
-
-		imgPleinEcran.addEventListener("touchmove", (e) => {
-			if (!panning || !activeImg || e.touches.length !== 1) return;
-
-			e.preventDefault();
-			masquerRaccourcis();
-
-			hasMoved = true;
-
-			pointX = e.touches[0].clientX - startX;
-			pointY = e.touches[0].clientY - startY;
-
-			updateTransform(activeImg);
-		}, { passive: false });
+        img.addEventListener("touchmove", (e) => {
+            if (e.touches.length === 2 && distancePinch > 0) {
+                e.preventDefault(); // bloque aussi le scroll de la page
+                const distance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                const echelle = echelleDepart * (distance / distancePinch);
+                img.style.transform = `scale(${Math.min(Math.max(echelle, 0.5), 8)})`;
+                img.dataset.echelle = echelle;
+            }
+        }, { passive: false });
 
 		imgPleinEcran.addEventListener("touchend", () => {
 			if (panning) {
