@@ -474,6 +474,7 @@
             visibility: hidden;
             transition: all 0.4s ease-in-out;
             overflow: hidden;
+			touch-action: none;
         }
 
         .twAudessus:target {
@@ -488,7 +489,6 @@
 			display: flex;
 			justify-content: center;
 			align-items: center;
-			touch-action: none;
 		}
 
         div.fermer, #modalZoom #btnDiaporama, #modalZoom #btnDiaporamaGlobal, .jourAffiche, #confirmAnnulation {
@@ -4995,6 +4995,8 @@
 			save = 1;
 			pointX = 0;
 			pointY = 0;
+			distancePinch = 0;
+			echelleDepart = 1;
 			img.style.transform = "translate(0px, 0px) scale(1)";
 			img.classList.remove("zoomed");
 		}
@@ -5192,8 +5194,7 @@
 				);
 
 				echelleDepart = scale;
-			}
-			else if (e.touches.length === 1 && scale > save) {
+			} else if (e.touches.length === 1 && scale > save) {
 				// Déplacement avec un doigt
 				distancePinch = 0;
 				panning = true;
@@ -5229,8 +5230,7 @@
 				}
 
 				updateTransform(activeImg);
-			}
-			else if (e.touches.length === 1 && panning && scale > save) {
+			} else if (e.touches.length === 1 && panning && scale > save) {
 				// Déplacement avec un doigt
 				e.preventDefault();
 				masquerRaccourcis();
