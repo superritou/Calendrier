@@ -2594,6 +2594,7 @@
         // ANNIVERSAIRES (récurrents : clé sans année, format "mois-jour")
         // ============================================================
         const CLE_ANNIVERSAIRES = "calendrier_anniversaires";
+		const CLE_ANNIV_RAPPEL = "calendrier_anniv_rappel";
 
         function getAnniversaires() {
             return JSON.parse(localStorage.getItem(CLE_ANNIVERSAIRES)) || {};
@@ -2611,10 +2612,12 @@
             const cle = `${moisAffiche + 1}-${mcJour}`;
             const anniversaires = getAnniversaires();
             const existant = anniversaires[cle];
+			const jourFormate = String(mcJour).padStart(2, "0");
+			const nom = `🎂 Anniversaire du ${jourFormate} ${moisNoms[moisAffiche]}`
 
             if (existant) {
                 // Il y a déjà un anniversaire : supprimer, remplacer, ou abandon
-                const supprimer = await confirmToast("🎂 Anniversaire", `Ce jour a déjà « ${existant} ». Voulez-vous le supprimer ?`, "🗑️ Supprimer", "✏️ Remplacer");
+                const supprimer = await confirmToast(`${nom}`, `Ce jour a déjà « ${existant} ». Voulez-vous le supprimer ?`, "🗑️ Supprimer", "✏️ Remplacer");
                 if (supprimer === true) {
                     delete anniversaires[cle];
                     sauverAnniversaires(anniversaires);
@@ -2622,7 +2625,7 @@
                     if (window.derniersHandlesCharges) {
                         await traiterDossierImages(window.derniersHandlesCharges, false);
                     }
-                    toast("🎂 Anniversaire supprimé.", "info");
+                    toast(`${nom} supprimé.`, "info");
                     return;
                 }
                 if (supprimer === null) return; // croix ✕ : abandon
@@ -2630,7 +2633,7 @@
             }
 
             // Pas d'anniversaire (ou remplacement) : saisie directe
-            const texte = await saisieToast("🎂 Anniversaire", existant ? "Nouveau texte de l'anniversaire :" : "Texte de l'anniversaire :", existant || "");
+            const texte = await saisieToast(`${nom}`, existant ? "Nouveau texte de l'anniversaire :" : "Texte de l'anniversaire :", existant || "");
             if (!texte) return;
 
             anniversaires[cle] = texte;
@@ -2639,7 +2642,7 @@
             if (window.derniersHandlesCharges) {
                 await traiterDossierImages(window.derniersHandlesCharges, false);
             }
-            toast(`🎂 Anniversaire enregistré : « ${texte} »`, "success");
+            toast(`${nom} enregistré : « ${texte} »`, "success");
         });
 
 		// ============================================================
@@ -3204,6 +3207,24 @@
 			}
 		});
 
+        // localStorage.clear() en préservant ce qui doit survivre
+        // (préférences en variables JS + anniversaires qui n'existent qu'en localStorage)
+        function viderLocalStorageProprement() {
+            const aGarder = {};
+            [CLE_ANNIVERSAIRES, CLE_ANNIV_RAPPEL].forEach(cle => {
+                const valeur = localStorage.getItem(cle);
+                if (valeur !== null) {
+                    aGarder[cle] = valeur;
+                }
+            });
+            localStorage.clear();
+            sauverVitesseDiapo();      // préférences JS → réécrites comme avant
+            sauverNotifications();
+            Object.entries(aGarder).forEach(([cle, valeur]) => {
+                localStorage.setItem(cle, valeur); // anniversaires → restaurés
+            });
+        }
+
 		// ============================================================
 		// ELEMENTS HTML
 		// ============================================================
@@ -3433,7 +3454,6 @@
 		];
 
 		let titre = "Mon Calendrier";
-		let annivJourDejaAffiche = false;
 
 		function construireGrilleCalendrier() {
 			const dateCible = new Date(anneeAffilee, moisAffiche, 1);
@@ -3575,10 +3595,13 @@
 			window.location.hash = "#adventDoors";
 			history.replaceState(null, "", location.pathname + location.search);
 
-			const jourAnniv = getAnniversaires()[`${moisAffiche + 1}-${jourActuelDuMois}`];
-			if (jourAnniv && !annivJourDejaAffiche) {
-				annivJourDejaAffiche = true;
-				confirmToast("🎂 Anniversaire du jour", `${jourAnniv}`, "OK", false);
+            // Anniversaire du jour : rappelé une seule fois PAR JOUR (localStorage),
+            // sur le jour/mois réels à l'instant du test — indépendant du mois affiché
+            const aujourdhui = new Date();
+            const annivDuJour = getAnniversaires()[`${aujourdhui.getMonth() + 1}-${aujourdhui.getDate()}`];
+            if (annivDuJour && localStorage.getItem(CLE_ANNIV_RAPPEL) !== aujourdhui.toDateString()) {
+                localStorage.setItem(CLE_ANNIV_RAPPEL, aujourdhui.toDateString());
+                confirmToast("🎂 Anniversaire du jour", `${annivDuJour}`, "OK", false);
             }
 		}
 
@@ -4028,9 +4051,7 @@
 				const rawHandles = await getFileHandlesFromDirectory(dirHandle);
 				if (rawHandles.length > 0) {
 					if (clearLocalStorage) {
-						localStorage.clear();
-						sauverVitesseDiapo(); // la vitesse est une préférence : on la conserve
-						sauverNotifications(); // les notifications aussi
+						viderLocalStorageProprement();
 					}
 					await traiterDossierImages(rawHandles, true);
 				} else {
@@ -4049,9 +4070,7 @@
 
 		document.getElementById("btnResetImages").addEventListener("click", async () => {
 			if (await confirmToast(undefined, "Voulez-vous vraiment effacer les images enregistrées ?")) {
-				localStorage.clear();
-				sauverVitesseDiapo(); // la vitesse est une préférence : on la conserve
-				sauverNotifications(); // les notifications aussi
+				viderLocalStorageProprement();
 				construireGrilleCalendrier();
 				if (window.derniersHandlesCharges) {
 					await traiterDossierImages(window.derniersHandlesCharges, false);
@@ -4225,9 +4244,7 @@
 				}
 
 				if (rawHandles.length > 0) {
-					localStorage.clear();
-					sauverVitesseDiapo();
-					sauverNotifications();
+					viderLocalStorageProprement();
 
 					if (!dossierPrincipal) {
 						await sauvegarderDossierDropFichiers();
