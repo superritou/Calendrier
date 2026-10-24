@@ -5173,17 +5173,17 @@
         let distancePinch = 0;
         let echelleDepart = 1;
 
-        img.addEventListener("touchstart", (e) => {
+        imgPleinEcran.addEventListener("touchstart", (e) => {
             if (e.touches.length === 2) {
                 distancePinch = Math.hypot(
                     e.touches[0].clientX - e.touches[1].clientX,
                     e.touches[0].clientY - e.touches[1].clientY
                 );
-                echelleDepart = parseFloat(img.dataset.echelle || "1");
+                echelleDepart = parseFloat(imgPleinEcran.dataset.echelle || "1");
             }
         }, { passive: false });
 
-        img.addEventListener("touchmove", (e) => {
+        imgPleinEcran.addEventListener("touchmove", (e) => {
             if (e.touches.length === 2 && distancePinch > 0) {
                 e.preventDefault(); // bloque aussi le scroll de la page
                 const distance = Math.hypot(
@@ -5191,8 +5191,8 @@
                     e.touches[0].clientY - e.touches[1].clientY
                 );
                 const echelle = echelleDepart * (distance / distancePinch);
-                img.style.transform = `scale(${Math.min(Math.max(echelle, 0.5), 8)})`;
-                img.dataset.echelle = echelle;
+                imgPleinEcran.style.transform = `scale(${Math.min(Math.max(echelle, 0.5), 8)})`;
+                imgPleinEcran.dataset.echelle = echelle;
             }
         }, { passive: false });
 
