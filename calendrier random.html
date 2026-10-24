@@ -4148,11 +4148,22 @@
 
             // Application immédiate : même logique que « Réinitialiser les images »
             construireGrilleCalendrier();
-			if (donnees["_dossier"]) {
-                toast(`📂 Dossier attendu pour cette sauvegarde : « ${donnees["_dossier"]} »`, "info", 15000);
-				const dossier = await confirmToast("📂 Informations", `Pour que la sauvegarde prenne effet réimporter le dossier : « ${donnees["_dossier"]} » maintenant`, "OK", "Annuler");
-				if (dossier === true) {
-					await selectionnerDossierImages(false);
+            if (donnees["_dossier"]) {
+                const dossierActuel = await recupererDossier();
+                if (!dossierActuel || dossierActuel.name !== donnees["_dossier"]) {
+                    toast(`📂 Dossier attendu pour cette sauvegarde : « ${donnees["_dossier"]} »`, "info", 15000);
+                    const dossier = await confirmToast("📂 Informations", `Pour que la sauvegarde prenne effet réimporter le dossier : « ${donnees["_dossier"]} » maintenant`, "OK", "Annuler");
+                    if (dossier === true) {
+                        await selectionnerDossierImages(false);
+                    } else {
+						if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
+							await traiterDossierImages(window.derniersHandlesCharges, false);
+						}
+					}
+                } else {
+					if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
+						await traiterDossierImages(window.derniersHandlesCharges, false);
+					}
 				}
             }
             toast(`📂 Sauvegarde importée (${nb} entrées restaurées) !`, "success");
