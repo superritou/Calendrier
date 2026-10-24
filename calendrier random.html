@@ -396,7 +396,7 @@
             font-weight: bold;
         }
 
-        .badge-anniversaire {
+        .badge-anniversaire, .badge-evenement {
             position: absolute;
             bottom: 2px;
             right: 3px;
@@ -404,6 +404,11 @@
             font-size: 13px;
             text-shadow: 0 1px 3px rgba(0,0,0,0.9);
             display: inline-block;
+        }
+
+        .badge-evenement {
+            left: 3px;
+            right: auto;
         }
 
         #adventDoors li a:hover {
@@ -1900,7 +1905,7 @@
 			margin-bottom: 0px;
 		}
 
-		.menu-contextuel .mc-actions[hidden], .menu-contextuel #mcAnniv[hidden] {
+		.menu-contextuel .mc-actions[hidden], .menu-contextuel #mcAnniv[hidden], .menu-contextuel #mcEvenementLigne[hidden]  {
 			display: none;
 		}
 
@@ -1944,7 +1949,7 @@
 				border-width: 10px;
 			}
 
-			.badge-anniversaire {
+			.badge-anniversaire, .badge-evenement {
 				font-size: 9px;
 			}
 
@@ -2544,9 +2549,11 @@
 	<div id="menuContextuel" class="menu-contextuel" hidden>
 		<div id="mcTitre" class="mc-titre"></div>
 		<div id="mcAnniv" class="mc-fichier" hidden></div>
+		<div id="mcEvenementLigne" class="mc-fichier" hidden></div>
 		<div id="mcFichier" class="mc-fichier"></div>
 		<div class="mc-actions actions-mois">
             <button id="mcAnniversaire" type="button">🎂 Anniversaire</button>
+			<button id="mcEvenement" type="button">📌 Événement</button>
         </div>
 		<div id="mcActions" class="mc-actions actions-mois" hidden>
 			<button id="mcAfficher" type="button">🖼️ Afficher l'image du jour</button>
@@ -2611,6 +2618,61 @@
 				}
 			}
 		});
+
+        // ============================================================
+        // ÉVÉNEMENTS (ponctuels : clé avec année, format "année-mois-jour",
+        // n'existe qu'une seule fois — ne se répète pas chaque année)
+        // ============================================================
+        const CLE_EVENEMENTS = "calendrier_evenements";
+
+        function getEvenements() {
+            return JSON.parse(localStorage.getItem(CLE_EVENEMENTS)) || {};
+        }
+
+        function sauverEvenements(evenements) {
+            localStorage.setItem(CLE_EVENEMENTS, JSON.stringify(evenements));
+        }
+
+        const mcEvenementBouton = document.getElementById("mcEvenement");
+
+        mcEvenementBouton.addEventListener("click", async () => {
+            if (mcJour === null) return;
+            fermerMenuContextuel();
+            const cle = `${anneeAffilee}-${moisAffiche + 1}-${mcJour}`;
+            const evenements = getEvenements();
+            const existant = evenements[cle];
+            const jourFormate = String(mcJour).padStart(2, "0");
+            const nom = `📌 Événement du ${jourFormate} ${moisNoms[moisAffiche]} ${anneeAffilee}`;
+
+            if (existant) {
+                // Il y a déjà un événement : supprimer, remplacer, ou abandon
+                const supprimer = await confirmToast(`${nom}`, `Ce jour a déjà « ${existant} ». Voulez-vous le supprimer ?`, "🗑️ Supprimer", "✏️ Remplacer");
+                if (supprimer === true) {
+                    delete evenements[cle];
+                    sauverEvenements(evenements);
+                    construireGrilleCalendrier();
+                    if (window.derniersHandlesCharges) {
+                        await traiterDossierImages(window.derniersHandlesCharges, false);
+                    }
+                    toast(`${nom} supprimé.`, "info");
+                    return;
+                }
+                if (supprimer === null) return; // croix ✕ : abandon
+                // false → on continue vers la saisie pour remplacer
+            }
+
+            // Pas d'événement (ou remplacement) : saisie directe
+            const texte = await saisieToast(`${nom}`, existant ? "Nouveau texte de l'événement :" : "Texte de l'événement :", existant || "");
+            if (!texte) return;
+
+            evenements[cle] = texte;
+            sauverEvenements(evenements);
+            construireGrilleCalendrier();
+            if (window.derniersHandlesCharges) {
+                await traiterDossierImages(window.derniersHandlesCharges, false);
+            }
+            toast(`${nom} enregistré : « ${texte} »`, "success");
+        });
 
         // ============================================================
         // ANNIVERSAIRES (récurrents : clé sans année, format "mois-jour")
@@ -2959,14 +3021,24 @@
 			// Titre du jour
 			mcTitre.textContent = "📅 " + lien.title;
 
-			const div = lien.querySelector("div");
-			const anniv = div ? (div.title) : null;
-			if ( !(anniv === null) ) {
-				mcAnniv.textContent = `${anniv}`;
-				mcAnniv.hidden = false;
-			} else {
-				mcAnniv.hidden = true;
-			}
+            const badgeAnniv = lien.querySelector(".badge-anniversaire");
+            const anniv = badgeAnniv ? badgeAnniv.title : null;
+            if ( !(anniv === null) ) {
+                mcAnniv.textContent = `${anniv}`;
+                mcAnniv.hidden = false;
+            } else {
+                mcAnniv.hidden = true;
+            }
+
+            const mcEvenementLigne = document.getElementById("mcEvenementLigne");
+            const badgeEvt = lien.querySelector(".badge-evenement");
+            const evt = badgeEvt ? badgeEvt.title : null;
+            if ( !(evt === null) ) {
+                mcEvenementLigne.textContent = `${evt}`;
+                mcEvenementLigne.hidden = false;
+            } else {
+                mcEvenementLigne.hidden = true;
+            }
 
 			// Nom de l'image associée
 			const image = lien.querySelector("img");
@@ -3229,11 +3301,30 @@
 			}
 		});
 
+        // Nettoyage : les événements des années précédentes ne reviendront
+        // jamais (clé datée) → on purge au démarrage pour garder la base légère
+        function nettoyerEvenementsPasses() {
+            const evenements = getEvenements();
+            const annee = new Date().getFullYear();
+            let modifie = false;
+            Object.keys(evenements).forEach(cle => {
+                const anneeCle = parseInt(cle.split("-")[0], 10);
+                if (anneeCle < annee) {
+                    delete evenements[cle];
+                    modifie = true;
+                }
+            });
+            if (modifie) {
+                sauverEvenements(evenements);
+            }
+        }
+        nettoyerEvenementsPasses();
+
         // localStorage.clear() en préservant ce qui doit survivre
         // (préférences en variables JS + anniversaires qui n'existent qu'en localStorage)
         function viderLocalStorageProprement() {
             const aGarder = {};
-            [CLE_ANNIVERSAIRES, CLE_ANNIV_RAPPEL].forEach(cle => {
+            [CLE_ANNIVERSAIRES, CLE_ANNIV_RAPPEL, CLE_EVENEMENTS, CLE_EVENT_RAPPEL].forEach(cle => {
                 const valeur = localStorage.getItem(cle);
                 if (valeur !== null) {
                     aGarder[cle] = valeur;
@@ -3585,6 +3676,16 @@
                     a.appendChild(badge);
                 }
 
+                const cleEvenement = `${anneeAffilee}-${moisAffiche + 1}-${i}`;
+                const texteEvenement = getEvenements()[cleEvenement];
+                if (texteEvenement) {
+                    const badgeEvt = document.createElement("div");
+                    badgeEvt.className = "badge-evenement";
+                    badgeEvt.textContent = "📌";
+                    badgeEvt.title = `📌 ${texteEvenement}`;
+                    a.appendChild(badgeEvt);
+                }
+
 				a.addEventListener("click", (e) => {
 					if (suppressClick) {
 						e.preventDefault();
@@ -3621,9 +3722,13 @@
             // sur le jour/mois réels à l'instant du test — indépendant du mois affiché
             const aujourdhui = new Date();
             const annivDuJour = getAnniversaires()[`${aujourdhui.getMonth() + 1}-${aujourdhui.getDate()}`];
-            if (annivDuJour && localStorage.getItem(CLE_ANNIV_RAPPEL) !== aujourdhui.toDateString()) {
+            const evenementDuJour = getEvenements()[`${aujourdhui.getFullYear()}-${aujourdhui.getMonth() + 1}-${aujourdhui.getDate()}`];
+            const rappels = [];
+            if (annivDuJour) rappels.push(`🎂 ${annivDuJour}`);
+            if (evenementDuJour) rappels.push(`📌 ${evenementDuJour}`);
+            if (rappels.length > 0 && localStorage.getItem(CLE_ANNIV_RAPPEL) !== aujourdhui.toDateString()) {
                 localStorage.setItem(CLE_ANNIV_RAPPEL, aujourdhui.toDateString());
-                confirmToast("🎂 Anniversaire du jour", `${annivDuJour}`, "OK", false);
+                confirmToast("📅 Aujourd'hui", rappels.join("\n"), "OK", false);
             }
 		}
 
@@ -4109,7 +4214,7 @@
         async function exporterSauvegarde() {
             const donnees = {};
             Object.keys(localStorage).forEach(cle => {
-                if (cle.startsWith("calendrier_grille_") || cle === CLE_ANNIVERSAIRES || cle.startsWith("calendrier_config_")) {
+                if (cle.startsWith("calendrier_grille_") || cle === CLE_ANNIVERSAIRES || cle === CLE_EVENEMENTS || cle.startsWith("calendrier_config_")) {
                     donnees[cle] = localStorage.getItem(cle);
                 }
             });
@@ -4165,7 +4270,7 @@
 
             let nb = 0;
             Object.entries(donnees).forEach(([cle, valeur]) => {
-                if (cle.startsWith("calendrier_grille_") || cle === CLE_ANNIVERSAIRES || cle.startsWith("calendrier_config_")) {
+                if (cle.startsWith("calendrier_grille_") || cle === CLE_ANNIVERSAIRES || cle === CLE_EVENEMENTS || cle.startsWith("calendrier_config_")) {
                     localStorage.setItem(cle, valeur);
                     nb++;
                 }
