@@ -3329,7 +3329,7 @@
         // (préférences en variables JS + anniversaires qui n'existent qu'en localStorage)
         function viderLocalStorageProprement() {
             const aGarder = {};
-            [CLE_ANNIVERSAIRES, CLE_ANNIV_RAPPEL, CLE_EVENEMENTS, CLE_EVENT_RAPPEL].forEach(cle => {
+            [CLE_ANNIVERSAIRES, CLE_ANNIV_RAPPEL, CLE_EVENEMENTS].forEach(cle => {
                 const valeur = localStorage.getItem(cle);
                 if (valeur !== null) {
                     aGarder[cle] = valeur;
