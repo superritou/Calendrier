@@ -4095,57 +4095,25 @@
             const nomDossier = await recupererDossier();
             donnees["_dossier"] = nomDossier?.name || "inconnu";
 
-            const donneesStr = JSON.stringify(donnees, null, 2);
-            const nomFichier = `calendrier-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
-            let exportReussi = false;
+            try {
+                const donneesStr = JSON.stringify(donnees, null, 2);
+                const nomFichier = `calendrier-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
 
-            // Tentative 1 : le save picker (choix du dossier) si le navigateur le propose
-            if (window.showSaveFilePicker) {
-                try {
-                    const handle = await window.showSaveFilePicker({
-                        suggestedName: nomFichier,
-                        types: [{
-                            description: "Sauvegarde Mon Calendrier",
-                            accept: { "application/json": [".json"] }
-                        }]
-                    });
+                // Téléchargement direct : le fichier atterrit dans Téléchargements
+                const blob = new Blob([donneesStr], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = nomFichier;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 5000);
 
-                    const writable = await handle.createWritable();
-                    await writable.write(donneesStr);
-                    await writable.close();
-
-                    // Vérification du contenu réellement écrit (certains navigateurs
-                    // mobiles ferment le flux sans rien écrire)
-                    const fichierEcrit = await handle.getFile();
-                    if (fichierEcrit.size > 0) {
-                        exportReussi = true;
-                    }
-                } catch (e) {
-                    console.log("Export picker en échec, passage au téléchargement :", e);
-                    exportReussi = false;
-                }
-            }
-
-            // Tentative 2 : téléchargement direct vers Téléchargements
-            if (!exportReussi) {
-                try {
-                    const blob = new Blob([donneesStr], { type: "application/json" });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = nomFichier;
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                    setTimeout(() => URL.revokeObjectURL(url), 5000);
-                    toast("💾 Sauvegarde exportée via téléchargement.", "info");
-                } catch (e) {
-                    console.log("Échec du téléchargement de secours :", e);
-                    toast("❌ Impossible d'exporter la sauvegarde sur ce navigateur.", "error");
-                    return;
-                }
-            } else {
-                toast(`💾 Sauvegarde exportée (${Object.keys(donnees).length} entrées) !`, "success");
+                toast(`💾 Sauvegarde exportée (${Object.keys(donnees).length} entrées) — voir Téléchargements.`, "success");
+            } catch (e) {
+                console.log("Échec de l'export :", e);
+                toast("❌ Impossible d'exporter la sauvegarde sur ce navigateur.", "error");
             }
         }
 
