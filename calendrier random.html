@@ -42,6 +42,11 @@
             padding: 20px 0 20px 0;
         }
 
+		button {
+		  -webkit-user-select: none;
+		  user-select: none;
+		}
+
         .-content {
             text-align: center;
             width: 95vw;
@@ -1887,10 +1892,6 @@
 			line-height: 1.5;
 		}
 
-		.menu-contextuel[hidden] {
-			display: none;
-		}
-
 		.menu-contextuel .mc-titre {
 			color: #2dd4bf;
 			font-weight: bold;
@@ -1911,7 +1912,7 @@
 			margin-bottom: 0px;
 		}
 
-		.menu-contextuel .mc-actions[hidden], .menu-contextuel #mcAnniv[hidden], .menu-contextuel #mcEvenementLigne[hidden]  {
+		.menu-contextuel[hidden], .menu-contextuel#infoButton[hidden], .menu-contextuel .mc-actions[hidden], .menu-contextuel #mcAnniv[hidden], .menu-contextuel #mcEvenementLigne[hidden]  {
 			display: none;
 		}
 
@@ -1956,7 +1957,7 @@
 			}
 
 			.badge-anniversaire, .badge-evenement {
-				font-size: 9px;
+				font-size: 11px;
 			}
 
 			#adventDoors li.jour-semaine {
@@ -2437,7 +2438,7 @@
 			<button title="Exporter cette image comme fond d'écran">🖼️ Fond d'écran</button>
 		</div>
 		<div class="jourAffiche" id="jourAffiche">
-			<span id="numeroJourImage">Jour 1</span>
+			<span id="numeroJourImage" title="">Jour 1</span>
 		</div>
 
 		<!-- Image -->
@@ -2557,7 +2558,7 @@
 		<div id="mcAnniv" class="mc-fichier" hidden></div>
 		<div id="mcEvenementLigne" class="mc-fichier" hidden></div>
 		<div id="mcFichier" class="mc-fichier"></div>
-		<div class="mc-actions actions-mois">
+		<div id="infoButton" class="mc-actions actions-mois">
             <button id="mcAnniversaire" type="button">🎂 Anniversaire</button>
 			<button id="mcEvenement" type="button">📌 Événement</button>
         </div>
@@ -2657,7 +2658,7 @@
                     delete evenements[cle];
                     sauverEvenements(evenements);
                     construireGrilleCalendrier();
-                    if (window.derniersHandlesCharges) {
+                    if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
                         await traiterDossierImages(window.derniersHandlesCharges, false);
                     }
                     toast(`${nom} supprimé.`, "info");
@@ -2674,7 +2675,7 @@
             evenements[cle] = texte;
             sauverEvenements(evenements);
             construireGrilleCalendrier();
-            if (window.derniersHandlesCharges) {
+            if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
                 await traiterDossierImages(window.derniersHandlesCharges, false);
             }
             toast(`${nom} enregistré : « ${texte} »`, "success");
@@ -2712,7 +2713,7 @@
                     delete anniversaires[cle];
                     sauverAnniversaires(anniversaires);
                     construireGrilleCalendrier();
-                    if (window.derniersHandlesCharges) {
+                    if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
                         await traiterDossierImages(window.derniersHandlesCharges, false);
                     }
                     toast(`${nom} supprimé.`, "info");
@@ -2729,7 +2730,7 @@
             anniversaires[cle] = texte;
             sauverAnniversaires(anniversaires);
             construireGrilleCalendrier();
-            if (window.derniersHandlesCharges) {
+            if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
                 await traiterDossierImages(window.derniersHandlesCharges, false);
             }
             toast(`${nom} enregistré : « ${texte} »`, "success");
@@ -2866,22 +2867,27 @@
 		// disponible, sinon via le constructeur classique.
 		// Obligatoire sur mobile : Chrome Android et les PWA iOS ne
 		// supportent PAS « new Notification() » — uniquement le SW.
-		function afficherNotification(titre = "", corps, icone = null, grandeImage = null) {
+		function afficherNotification(titre = "", corps = "", icone = null, grandeImage = null, evenmt = false) {
 			const aujourdhui = new Date();
 			const jour = aujourdhui.getDate();
 			const lienJour = adventDoors.querySelector(`a[data-jour="${jour}"]`);
 			const title = lienJour ? lienJour.title : null;
 			const image = lienJour.querySelector("img");
 			const nom = image ? (image.ariaLabel || image.alt) : null;
-			if (nom) {
-				corps = `${corps} «${nom}»`
+			if (!evenmt && nom) {
+				corps = `${corps}\n«${nom}»`;
 			}
 			if (title) {
-				titre = "📅 " + title + titre
+				titre = "📅 " + title + titre;
 			} else {
 				titre = `📅 ${joursNoms[aujourdhui.getDay()]} ${jour} ${moisNoms[aujourdhui.getMonth()]}` + titre;
 			}
-			const options = { body: corps, tag: `calendrier-image-jour-${jour}` };
+			let options;
+			if (evenmt) { 
+				options = { body: corps, tag: `calendrier-event` };
+			} else {
+				options = { body: corps, tag: `calendrier-image-jour-${jour}` };
+			}
 			if (icone) options.icon = icone;
 			if (grandeImage) options.image = grandeImage;
 
@@ -2994,11 +3000,13 @@
 		const mcActions = document.getElementById("mcActions");
 		const mcAfficher = document.getElementById("mcAfficher");
 		const mcChanger = document.getElementById("mcChanger");
+		const infoButton = document.getElementById("infoButton");
 
 		// Jour concerné par le menu contextuel courant
 		let mcJour = null;
 
 		function fermerMenuContextuel() {
+			clearTimeout(timerInfobulle);
 			menuContextuel.hidden = true;
 		}
 
@@ -3061,6 +3069,7 @@
 			const marge = 8;
 
 			// Afficher le menu avant de mesurer ses dimensions
+			infoButton.hidden = false;
 			menuContextuel.hidden = false;
 
 			// Mesurer les dimensions réelles du menu
@@ -3105,6 +3114,96 @@
 			// Appliquer la position finale
 			menuContextuel.style.left = `${x}px`;
 			menuContextuel.style.top = `${y}px`;
+		}
+
+		let timerInfobulle;
+
+		function afficherInfobulle(texte, e, duree = 3000) {
+			if (panneauAide.classList.contains("visible")) {
+				panneauAide.classList.remove("visible");
+			}
+			clearTimeout(timerInfobulle);
+
+			// Titre du jour
+			mcTitre.textContent = "ℹ️ Info:";
+
+			mcFichier.textContent = texte;
+
+			mcActions.hidden = true;
+			mcAnniv.hidden = true;
+			mcEvenementLigne.hidden = true;
+			infoButton.hidden = true;
+			
+			const marge = 8;
+
+			// Afficher le menu avant de mesurer ses dimensions
+			menuContextuel.hidden = false;
+
+			// Mesurer les dimensions réelles du menu
+			const rect = menuContextuel.getBoundingClientRect();
+			const largeur = rect.width;
+			const hauteur = rect.height;
+
+			// Dimensions de la zone visible de la page
+			const largeurEcran = document.documentElement.clientWidth;
+			const hauteurEcran = document.documentElement.clientHeight;
+
+			// Coordonnées du clic
+			let x = e.clientX + 6;
+			let y = e.clientY + 6;
+
+			// Si le menu dépasse à droite, le placer à gauche du clic
+			if (x + largeur > largeurEcran - marge) {
+				x = e.clientX - largeur - 6;
+			}
+
+			// Limiter la position horizontale
+			const maxX = Math.max(
+				marge,
+				largeurEcran - largeur - marge
+			);
+
+			x = Math.max(marge, Math.min(x, maxX));
+
+			// Si le menu dépasse en bas, le placer au-dessus du clic
+			if (y + hauteur > hauteurEcran - marge) {
+				y = e.clientY - hauteur - 6;
+			}
+
+			// Limiter la position verticale
+			const maxY = Math.max(
+				marge,
+				hauteurEcran - hauteur - marge
+			);
+
+			y = Math.max(marge, Math.min(y, maxY));
+
+			// Appliquer la position finale
+			menuContextuel.style.left = `${x}px`;
+			menuContextuel.style.top = `${y}px`;
+			if (duree > 0) {
+				timerInfobulle = setTimeout(() => {
+					fermerMenuContextuel();
+				}, duree);
+			}
+		}
+
+		const estTactile = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+
+		if (estTactile) {
+			document.addEventListener('contextmenu', function(event) {
+				if (event.target.closest('a')) return;
+
+				const element = event.target.closest('[title]');
+				if (!element || !element.title.trim()) return;
+
+				event.preventDefault();
+
+				afficherInfobulle(
+					element.title,
+					event
+				);
+			});
 		}
 
 		// Fermeture : molette
@@ -3175,7 +3274,6 @@
 					confirmAnnulation.removeEventListener("click", annulation);
 					confirmAnnuler.textContent = "Non";
 					confirmValider.textContent = "Oui";
-					confirmAnnulation.hidden = true;
 					resolve(resultat);
 				};
 
@@ -3249,8 +3347,10 @@
 			if (nouvelleDate.toDateString() !== now.toDateString()) {
 				now = nouvelleDate;
 				jourActuelDuMois = now.getDate();
+				moisAffiche = now.getMonth();
+				anneeAffilee = now.getFullYear();
 				construireGrilleCalendrier();
-				if (window.derniersHandlesCharges) {
+				if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
 					await traiterDossierImages(window.derniersHandlesCharges, false);
 				}
 			}
@@ -3735,6 +3835,15 @@
             if (rappels.length > 0 && localStorage.getItem(CLE_ANNIV_RAPPEL) !== aujourdhui.toDateString()) {
                 localStorage.setItem(CLE_ANNIV_RAPPEL, aujourdhui.toDateString());
                 confirmToast("📅 Aujourd'hui", rappels.join("\n"), "OK", false);
+				if (notifsActivees() && "Notification" in window && Notification.permission === "granted") {
+					afficherNotification(
+						"",
+						`${rappels.join("\n")}`,
+						"./calendrier-maskable-512.png",
+						null,
+						true
+					);
+				}
             }
 		}
 
@@ -3918,7 +4027,7 @@
 				return;
 			}
 
-			const MAX_IMAGES = 1000;
+			const MAX_IMAGES = 500;
 			let handlesAUtiliser = rawHandles;
 			if (rawHandles.length > MAX_IMAGES) {
 				infoStatut.textContent = `📂 ${rawHandles.length} images trouvées. Sélection aléatoire de ${MAX_IMAGES} images...`;
@@ -4205,7 +4314,7 @@
 			if (await confirmToast(undefined, "Voulez-vous vraiment effacer les images enregistrées ?")) {
 				viderLocalStorageProprement();
 				construireGrilleCalendrier();
-				if (window.derniersHandlesCharges) {
+				if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
 					await traiterDossierImages(window.derniersHandlesCharges, false);
 				}
 			}
@@ -4626,7 +4735,7 @@
 			moisAffiche = dateDuJour.getMonth();
 			anneeAffilee = dateDuJour.getFullYear();
 			construireGrilleCalendrier();
-			if (window.derniersHandlesCharges) {
+			if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
 				await traiterDossierImages(window.derniersHandlesCharges, false);
 			}
 		});
@@ -4641,7 +4750,7 @@
 
 			construireGrilleCalendrier();
 
-			if (window.derniersHandlesCharges) {
+			if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
 				await traiterDossierImages(window.derniersHandlesCharges, false);
 			}
 		});
@@ -4653,7 +4762,7 @@
 				anneeAffilee--;
 			}
 			construireGrilleCalendrier();
-			if (window.derniersHandlesCharges) {
+			if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
 				await traiterDossierImages(window.derniersHandlesCharges, false);
 			}
 		});
@@ -4665,7 +4774,7 @@
 				anneeAffilee++;
 			}
 			construireGrilleCalendrier();
-			if (window.derniersHandlesCharges) {
+			if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
 				await traiterDossierImages(window.derniersHandlesCharges, false);
 			}
 		});
@@ -4673,7 +4782,7 @@
 		btnAnneePrec.addEventListener("click", async () => {
 			anneeAffilee--;
 			construireGrilleCalendrier();
-			if (window.derniersHandlesCharges) {
+			if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
 				await traiterDossierImages(window.derniersHandlesCharges, false);
 			}
 		});
@@ -4681,7 +4790,7 @@
 		btnAnneeSuiv.addEventListener("click", async () => {
 			anneeAffilee++;
 			construireGrilleCalendrier();
-			if (window.derniersHandlesCharges) {
+			if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
 				await traiterDossierImages(window.derniersHandlesCharges, false);
 			}
 		});
@@ -4749,8 +4858,6 @@
 		});
 
 		// Gestion de la molette (uniquement sur écran non tactile)
-		const estTactile = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
-
 		if (!estTactile) {
 			document.querySelector(".diapo-vitesse-wrapper").addEventListener("wheel", (e) => {
 				e.preventDefault();
