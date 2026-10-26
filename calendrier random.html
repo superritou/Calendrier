@@ -1912,7 +1912,7 @@
 			margin-bottom: 0px;
 		}
 
-		.menu-contextuel[hidden], .menu-contextuel#infoButton[hidden], .menu-contextuel .mc-actions[hidden], .menu-contextuel #mcAnniv[hidden], .menu-contextuel #mcEvenementLigne[hidden]  {
+		.menu-contextuel[hidden], .menu-contextuel #infoButton[hidden], .menu-contextuel .mc-actions[hidden], .menu-contextuel #mcAnniv[hidden], .menu-contextuel #mcEvenementLigne[hidden]  {
 			display: none;
 		}
 
@@ -2883,7 +2883,7 @@
 				titre = `📅 ${joursNoms[aujourdhui.getDay()]} ${jour} ${moisNoms[aujourdhui.getMonth()]}` + titre;
 			}
 			let options;
-			if (evenmt) { 
+			if (evenmt) {
 				options = { body: corps, tag: `calendrier-event` };
 			} else {
 				options = { body: corps, tag: `calendrier-image-jour-${jour}` };
@@ -3133,7 +3133,7 @@
 			mcAnniv.hidden = true;
 			mcEvenementLigne.hidden = true;
 			infoButton.hidden = true;
-			
+
 			const marge = 8;
 
 			// Afficher le menu avant de mesurer ses dimensions
