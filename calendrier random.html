@@ -2875,7 +2875,7 @@
 			const image = lienJour.querySelector("img");
 			const nom = image ? (image.ariaLabel || image.alt) : null;
 			if (!evenmt && nom) {
-				corps = `${corps}\n«${nom}»`;
+				corps = `${corps} «${nom}»`;
 			}
 			if (title) {
 				titre = "📅 " + title + titre;
