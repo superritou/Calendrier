@@ -4721,6 +4721,9 @@
 
 		function masquerRaccourcis() {
 			panneauRaccourcis.classList.remove("visible");
+			if (!menuContextuel.hidden) {
+				fermerMenuContextuel();
+			}
 		}
 
 		btnRaccourcis.addEventListener("click", (e) => {
