@@ -3026,6 +3026,9 @@
 
 		// Écouteur délégué : un seul listener pour toute la grille
 		function AfficherContextMenu(jour, e) {
+			if (!menuContextuel.hidden) {
+				fermerMenuContextuel();
+			}
 			const lien = adventDoors.querySelector(`a[data-jour="${jour}"]`);
 			if (!lien) return;
 			if (panneauAide.classList.contains("visible")) {
