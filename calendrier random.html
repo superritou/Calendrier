@@ -36,7 +36,7 @@
 			background-origin: initial;
 			background-clip: initial;
 			background-size: contain;
-            font-family: "Mountains of Christmas", "Lato", sans-serif;
+            font-family: "Lato", sans-serif;
             color: #e2e8f0;
             text-align: center;
             padding: 20px 0 20px 0;
@@ -75,7 +75,7 @@
 			content: "📁 Déposez votre dossier ici";
 			position: fixed;
 			inset: 20px;
-			z-index: 99999;
+			z-index: 999999;
 			display: flex;
 			align-items: center;
 			justify-content: center;
@@ -103,15 +103,9 @@
 		/* ============================================================
            LOADER DE CHARGEMENT
            ============================================================ */
-        .loader-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(36, 40, 58, 0.9);
-            backdrop-filter: blur(8px);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+        .twAudessus.loader-overlay {
+			opacity: 1;
+            visibility: visible;
             z-index: 999999;
             transition: opacity 0.4s ease, visibility 0.4s ease;
         }
@@ -134,7 +128,6 @@
 
         .loader-text {
             color: #e2e8f0;
-            font-family: "Lato", sans-serif;
             font-size: 16px;
             font-weight: bold;
             letter-spacing: 0.5px;
@@ -221,7 +214,6 @@
         #infoStatut {
 			display: inline-block;
             color: #cbd5e1;
-            font-family: "Lato", sans-serif;
 			padding: 5px 8px;
 			line-height: normal;
 			border-radius: 10px;
@@ -278,7 +270,6 @@
 		#adventDoors li.numero-semaine {
 			color: #2dd4bf;
 			font-weight: bold;
-			font-family: "Lato", sans-serif;
 			font-size: 16px;
 			display: flex;
 			justify-content: center;
@@ -293,7 +284,6 @@
         #adventDoors li.jour-semaine {
             color: #ffffff;
             font-weight: bold;
-            font-family: "Lato", sans-serif;
             font-size: 16px;
             padding: 8px 0;
 			border: 2px rgba(255, 255, 255, 0.4) solid;
@@ -477,7 +467,7 @@
             height: 100vh;
 			width: 100dvw;
             height: 100dvh;
-            background-color: rgba(3, 7, 18, 0.85);
+            background-color: rgba(3, 7, 18, 0.5);
 			background-position-x: center;
 			background-position-y: center;
 			background-repeat: initial;
@@ -487,6 +477,9 @@
 			background-size: contain;
             backdrop-filter: blur(5px);
             display: flex;
+			inset: 0;
+            flex-direction: column;
+            gap: 12px;
             justify-content: center;
             align-items: center;
             z-index: 100000;
@@ -511,7 +504,7 @@
 			align-items: center;
 		}
 
-        div.fermer, #modalZoom #btnDiaporama, #modalZoom #btnDiaporamaGlobal, .jourAffiche, #confirmAnnulation {
+        .fermer, #modalZoom #btnDiaporama, #modalZoom #btnDiaporamaGlobal, .jourAffiche {
             position: absolute;
             top: 20px;
             right: 20px;
@@ -526,10 +519,11 @@
             z-index: 100001;
             transition: all 0.2s ease;
 			cursor: pointer;
-			line-height: 1.2;
+			line-height: 1;
+			padding: 0;
         }
 
-		#modalZoom #btnDiaporama, #modalZoom #btnDiaporamaGlobal {
+		.fermer, #modalZoom #btnDiaporama, #modalZoom #btnDiaporamaGlobal {
 			color: #fff;
 			font-size: 24px;
 			box-shadow: none;
@@ -543,24 +537,11 @@
 			right: 160px;
 		}
 
-        div.fermer a, #confirmAnnulation {
-			color: white;
-            font-size: 24px;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-        }
-
-        div.fermer:hover, #modalZoom #btnDiaporama:hover, #modalZoom #btnDiaporamaGlobal:hover, .jourAffiche:hover, #confirmAnnulation:hover {
+        .fermer:hover, #modalZoom #btnDiaporama:hover, #modalZoom #btnDiaporamaGlobal:hover, .jourAffiche:hover {
             background-color: rgba(15, 23, 42, 0.9);
             border-color: #fbbf24;
             transform: scale(1.1);
-        }
-
-        div.fermer a:hover, #modalZoom #btnDiaporama:hover, #modalZoom #btnDiaporamaGlobal:hover, .jourAffiche:hover, #confirmAnnulation:hover {
-            color: #fbbf24;
+			color: #fbbf24;
         }
 
 		#btnFondEcran {
@@ -1092,17 +1073,7 @@
 		   MINI-GALERIE : SÉLECTION MANUELLE DE L'IMAGE D'UN JOUR
 		   ============================================================ */
 		.galerie-overlay {
-			position: fixed;
-			inset: 0;
 			z-index: 100010;
-			background: rgba(3, 7, 18, 0.85);
-			backdrop-filter: blur(5px);
-			display: flex;
-			justify-content: center;
-			align-items: center;
-			opacity: 0;
-			visibility: hidden;
-			transition: all 0.25s ease-in-out;
 		}
 
 		.galerie-overlay.visible {
@@ -1139,7 +1110,6 @@
 			margin: 0;
 			font-size: 1.3rem;
 			color: #c084fc;
-			font-family: "Lato", sans-serif;
 			text-align: left;
 		}
 
@@ -1168,6 +1138,8 @@
 			cursor: pointer;
 			font-size: 18px;
 			flex: none;
+			line-height: 1;
+			padding: 0;
 		}
 
 		#galerieFermer:hover {
@@ -1180,7 +1152,6 @@
 			margin: 0;
 			font-size: 13px;
 			color: #94a3b8;
-			font-family: "Lato", sans-serif;
 			text-align: left;
 		}
 
@@ -1258,18 +1229,7 @@
 
         /* Aperçu agrandi */
         .galerie-apercu {
-            position: fixed;
-            inset: 0;
             z-index: 100020;
-            background: rgba(3, 7, 18, 0.9);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 12px;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.25s ease-in-out;
         }
 
         .galerie-apercu.visible {
@@ -1389,7 +1349,6 @@
 			font-size: 10px;
 			color: #cbd5e1;
 			margin-bottom: 8px;
-			font-family: "Lato", sans-serif;
 			font-weight: bold;
 			text-align: center;
 		}
@@ -1428,7 +1387,6 @@
 			font-size: 11px;
 			color: #2dd4bf;
 			margin-top: 8px;
-			font-family: "Lato", sans-serif;
 			font-weight: bold;
 		}
 
@@ -1491,6 +1449,8 @@
 			z-index: 100006;
 			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
 			transition: all 0.3s ease;
+			line-height: 1;
+			padding: 0;
 		}
 
 		/* Visible dès que la visionneuse est ouverte */
@@ -1536,6 +1496,8 @@
 			z-index: 100006;
 			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
 			transition: all 0.3s ease;
+			line-height: 1;
+			padding: 0;
 		}
 
 		.aide-bouton:hover {
@@ -1545,8 +1507,6 @@
 
         #btnMenuActions {
             top: 8px;
-			padding: 0;
-			line-height: 1;
         }
 
         /* Écran minimal : toutes les rangées d'actions sont masquées */
@@ -1578,7 +1538,6 @@
 			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
 			color: #e2e8f0;
 			font-size: 13px;
-			font-family: "Lato", sans-serif;
 			max-width: min(420px, calc(100vw - 40px));
 			max-width: min(420px, calc(100dvw - 40px));
 			text-align: left;
@@ -1652,7 +1611,6 @@
 			font-weight: bold;
 			color: #2dd4bf;
 			margin-bottom: 4px;
-			font-family: "Lato", sans-serif;
 		}
 
 		.raccourcis-ligne {
@@ -1742,18 +1700,14 @@
 		   ============================================================ */
 
 		.confirm-overlay {
-			position: fixed;
-			inset: 0;
+			opacity: 1;
+			visibility: visible;
 			z-index: 200001;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			background: rgba(3, 7, 18, 0.7);
-			backdrop-filter: blur(4px);
 		}
 
 		.confirm-overlay[hidden] {
-			display: none;
+			opacity: 0;
+			visibility: hidden;
 		}
 
 		.confirm-boite {
@@ -1789,7 +1743,6 @@
             border-radius: 8px;
             background: rgba(15, 23, 42, 0.95);
             color: white;
-            font-family: "Lato", sans-serif;
             font-size: 14px;
             outline: none;
         }
@@ -1857,7 +1810,7 @@
 			border-radius: 6px;
 			background: #f59e0b;
 			color: #1f2937;
-			font-weight: 600;
+			font-weight: bold;
 			cursor: pointer;
 			transition: all 0.3s ease;
 		}
@@ -1886,7 +1839,6 @@
 			border-radius: 12px;
 			box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6);
 			color: #e2e8f0;
-			font-family: "Lato", sans-serif;
 			font-size: 13px;
 			text-align: left;
 			line-height: 1.5;
@@ -1987,7 +1939,7 @@
 				right: 5px;
 			}
 
-			.jourAffiche, #modalZoom #btnDiaporama, #modalZoom #btnDiaporamaGlobal, div.fermer {
+			.jourAffiche, #modalZoom #btnDiaporama, #modalZoom #btnDiaporamaGlobal, #btnFermerZoom {
 				width: 45px;
 				height: 45px;
 				top: 8px;
@@ -1998,7 +1950,7 @@
 				font-size: 10px;
 			}
 
-			div.fermer {
+			#btnFermerZoom {
 				right: 8px;
 			}
 
@@ -2075,7 +2027,7 @@
 				right: 112px;
 			}
 
-			div.fermer a, #modalZoom #btnDiaporama, #modalZoom #btnDiaporamaGlobal {
+			#btnFermerZoom, #modalZoom #btnDiaporama, #modalZoom #btnDiaporamaGlobal {
 				font-size: 18px;
 			}
 
@@ -2123,10 +2075,7 @@
 			}
 
 			#adventDoors li a img,
-			#modalZoom,
-			#galerieJour,
-			#galerieApercu,
-			#loaderOverlay,
+			.twAudessus,
 			#btnToggleCalendar,
 			.aide-bouton,
 			.panneau-aide,
@@ -2250,10 +2199,7 @@
 		}
 
 		#calendrier #adventDoors li a img,
-		#calendrier #modalZoom,
-		#calendrier #galerieJour,
-		#calendrier #galerieApercu,
-		#calendrier #loaderOverlay,
+		#calendrier .twAudessus,
 		#calendrier #btnToggleCalendar,
 		#calendrier .aide-bouton,
 		#calendrier .panneau-aide,
@@ -2370,7 +2316,7 @@
 		</button>
 	</div>
 	<!-- Loader affiché par défaut au démarrage -->
-    <div id="loaderOverlay" class="loader-overlay">
+    <div id="loaderOverlay" class="twAudessus loader-overlay">
         <div class="spinner"></div>
         <div class="loader-text">Chargement de votre calendrier...</div>
     </div>
@@ -2431,9 +2377,7 @@
 		</button>
 
 		<!-- Fermer -->
-		<div class="fermer" title="Fermer" aria-label="Fermer">
-			<a href="#" id="btnFermerZoom">✕</a>
-		</div>
+		<button class="fermer" id="btnFermerZoom" type="button" title="Fermer" aria-label="Fermer">❌</button>
 		<div id="btnFondEcran" class="actions-diapo">
 			<button title="Exporter cette image comme fond d'écran">🖼️ Fond d'écran</button>
 		</div>
@@ -2476,12 +2420,12 @@
 	</div>
 
 	<!-- Mini-galerie de sélection d'image pour un jour -->
-	<div id="galerieJour" class="galerie-overlay" title="Fermer la galerie">
+	<div id="galerieJour" class="twAudessus galerie-overlay" title="Fermer la galerie">
 		<div class="galerie-boite" title="">
 			<div class="galerie-entete">
 				<h2 id="galerieTitre">Choisir l'image</h2>
 				<button id="btnGaleriePleinEcran" type="button" title="Afficher l'image du jour en plein écran">👁️ Plein écran</button>
-				<button id="galerieFermer" type="button" title="Fermer la galerie">✕</button>
+				<button id="galerieFermer" type="button" title="Fermer la galerie">❌</button>
 			</div>
 			<p id="galerieInfo"></p>
 			<div id="galerieGrille" class="galerie-grille"></div>
@@ -2498,11 +2442,11 @@
 		<button id="btnRaccourcisGalerie" class="raccourcis-bouton" title="Raccourcis clavier" aria-label="Raccourcis clavier">⌨</button>
 	</div>
 	    <!-- Aperçu agrandi d'une image de la galerie -->
-    <div id="galerieApercu" class="galerie-apercu" title="Fermer l'aperçu">
+    <div id="galerieApercu" class="twAudessus galerie-apercu" title="Fermer l'aperçu">
         <img id="apercuImage" alt="Aperçu" title="">
         <div class="galerie-apercu-actions" title="">
             <button id="apercuChoisir" type="button" class="apercu-choisir" title="Choisir cette image">✅ Choisir cette image</button>
-            <button id="apercuFermer" type="button" title="Fermer l'aperçu">✕ Fermer</button>
+            <button id="apercuFermer" type="button" title="Fermer l'aperçu">❌ Fermer</button>
         </div>
 
         <!-- Panneau des raccourcis clavier de l'aperçu -->
@@ -2518,7 +2462,7 @@
 
 	<button id="btnMenuActions" class="aide-bouton" title="Afficher/Masquez le menu">➕</button>
 	<!-- Bouton d'aide et mode d'emploi (visible sur l'écran principal) -->
-	<button id="btnAide" class="aide-bouton" title="Mode d'emploi" aria-label="Mode d'emploi">?</button>
+	<button id="btnAide" class="aide-bouton" title="Mode d'emploi" aria-label="Mode d'emploi">❓</button>
 	<div id="panneauAide" class="panneau-aide">
 		<div class="aide-titre">📅 Mon Calendrier — mode d'emploi</div>
 		<div>1️⃣ Sélectionnez ou glissez-déposez le dossier contenant vos images : le calendrier du mois se remplit automatiquement, une image par jour.</div>
@@ -2539,9 +2483,9 @@
 	<div id="toastContainer" aria-live="polite" aria-atomic="true"></div>
 
 	<!-- Confirmation personnalisée -->
-	<div id="confirmOverlay" class="confirm-overlay" hidden>
+	<div id="confirmOverlay" class="twAudessus confirm-overlay" hidden>
 		<div class="confirm-boite" role="dialog" aria-modal="true" aria-labelledby="confirmTitre">
-			<button id="confirmAnnulation" type="button" title="Annuler">✕</button>
+			<button class="fermer" id="confirmAnnulation" type="button" title="Annuler">❌</button>
 			<div id="confirmTitre" class="confirm-titre">Confirmation</div>
 			<div id="confirmMessage" class="confirm-message"></div>
 			<input type="text" id="confirmSaisie" class="confirm-saisie" hidden>
@@ -3270,8 +3214,9 @@
 					confirmAnnuler.style.display = "";
 				}
 
-				const fermer = (resultat) => {
+				const fermer = async (resultat) => {
 					confirmOverlay.hidden = true;
+					await new Promise(resolve => setTimeout(resolve, 400));
 					confirmAnnuler.removeEventListener("click", annuler);
 					confirmValider.removeEventListener("click", valider);
 					confirmAnnulation.removeEventListener("click", annulation);
@@ -3303,11 +3248,16 @@
                 confirmSaisie.hidden = false;
                 confirmOverlay.hidden = false;
                 document.activeElement.blur();
-                confirmSaisie.focus();
-                confirmSaisie.select();
+				confirmOverlay.addEventListener("transitionend", function focusChamp(e) {
+					if (e.propertyName !== "opacity") return;
+					confirmOverlay.removeEventListener("transitionend", focusChamp);
+					confirmSaisie.focus();
+					confirmSaisie.select();
+				});
 
-                const fermer = (resultat) => {
+                const fermer = async (resultat) => {
                     confirmOverlay.hidden = true;
+					await new Promise(resolve => setTimeout(resolve, 400));
                     confirmSaisie.hidden = true;
                     confirmAnnuler.style.display = "";
                     confirmValider.textContent = "Oui"; // remise à l'état confirmToast
@@ -4238,7 +4188,7 @@
 
 			await appliquerFondAvecTest("gridImg", (url) => {
 				adventDoors.style.backgroundImage = `url('${url}')`;
-				document.querySelector(".twAudessus").style.backgroundImage = `url('${url}')`;
+				modalZoom.style.backgroundImage = `url('${url}')`;
 				two.src = `${url}`;
 			});
 
@@ -4457,7 +4407,7 @@
         btnMenuActions.addEventListener("click", () => {
             menuActionsOuvert = !menuActionsOuvert;
             document.body.classList.toggle("boutons-masques", menuActionsOuvert);
-            btnMenuActions.textContent = menuActionsOuvert ? "❌" : "➕";
+            btnMenuActions.textContent = menuActionsOuvert ? "✖️" : "➕";
         });
 
 		let dragCounter = 0;
@@ -5923,7 +5873,7 @@
                     color: white;
                     background: rgba(0, 0, 0, 0.65);
                     border-radius: 8px;
-                    font-family: 'Lato', sans-serif;
+					font-family: 'Lato', sans-serif;
                     font-size: ${format === "mobile" ? 40 : 26}px;
                     line-height: 1.4;
                     white-space: normal;
@@ -6119,7 +6069,7 @@
 			clone.id = "calendrier";
 			if (format === "mobile") clone.classList.add("portrait");
 			clone.innerHTML = document.body.innerHTML;
-			clone.querySelectorAll("script, .alerte-navigateur, .loader-overlay, #btnToggleCalendar, .menu, .twAudessus, .galerie-overlay, .galerie-apercu, .confirm-overlay, #toastContainer, .aide-bouton, .panneau-aide, .menu-contextuel").forEach(s => s.remove());
+			clone.querySelectorAll("script, .alerte-navigateur, #btnToggleCalendar, .menu, .twAudessus, #toastContainer, .aide-bouton, .panneau-aide, .menu-contextuel").forEach(s => s.remove());
 
 			// 2. Styles du <body> recopiés en inline (le clone n'est
 			//    plus un <body>, ses règles CSS ne s'appliquent pas)
