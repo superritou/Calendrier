@@ -5573,8 +5573,12 @@
 		function fermerGalerie() {
 			galerieOverlay.classList.remove("visible");
 			panneauRaccourcisGalerie.classList.remove("visible");
-			galerieGrille.innerHTML = "";
-			apercuImage.removeAttribute("src");
+			galerieOverlay.addEventListener("transitionend", function focusChamp(e) {
+				if (e.propertyName !== "opacity") return;
+				galerieOverlay.removeEventListener("transitionend", focusChamp);
+				galerieGrille.innerHTML = "";
+				apercuImage.removeAttribute("src");
+			});
 			urlsGalerie.forEach(url => URL.revokeObjectURL(url));
 			urlsGalerie = [];
 			jourGalerieActuel = null;
@@ -5763,7 +5767,11 @@
         function fermerApercu() {
             galerieApercu.classList.remove("visible");
             panneauRaccourcisApercu.classList.remove("visible");
-            apercuImage.src = "";
+			galerieApercu.addEventListener("transitionend", function focusChamp(e) {
+				if (e.propertyName !== "opacity") return;
+				galerieApercu.removeEventListener("transitionend", focusChamp);
+				apercuImage.src = "";
+			});
             apercuHandle = null;
             apercuBouton = null;
         }
