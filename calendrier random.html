@@ -245,6 +245,10 @@
 			backdrop-filter: none;
 		}
 
+		#zoneGrille {
+			position: relative;
+		}
+
         /* Styles pour la grille du calendrier */
         ul#adventDoors {
             position: relative;
@@ -443,6 +447,19 @@
             transform: scale(0.5);
 			transform-origin: top left;
         }
+
+		.resume-mois {
+			position: absolute;
+			bottom: -16px;
+			right: 0px;
+			z-index: 5;
+			background: rgba(15, 118, 110, 0.85);
+			color: #fff;
+			border-radius: 12px;
+			padding: 2px 10px;
+			font-size: 12px;
+			pointer-events: none;
+		}
 
         .-content h1 {
 			position: sticky;
@@ -1251,6 +1268,8 @@
         .galerie-apercu-actions {
             display: flex;
             gap: 10px;
+			max-width: 90vw;
+			max-width: 90dvw;
         }
 
         .galerie-apercu-actions button {
@@ -1865,7 +1884,7 @@
 			margin-bottom: 0px;
 		}
 
-		.menu-contextuel[hidden], .menu-contextuel #infoButton[hidden], .menu-contextuel .mc-actions[hidden], .menu-contextuel #mcAnniv[hidden], .menu-contextuel #mcEvenementLigne[hidden]  {
+		.menu-contextuel[hidden], .menu-contextuel #infoButton[hidden], .menu-contextuel .mc-actions[hidden], .menu-contextuel #mcAnniv[hidden], .menu-contextuel #mcEvenementLigne[hidden], #resumeMois[hidden] {
 			display: none;
 		}
 
@@ -2081,6 +2100,7 @@
 			.aide-bouton,
 			.panneau-aide,
 			.menu,
+			.resume-mois,
 			#toastContainer {
 				display: none !important;
 			}
@@ -2205,6 +2225,7 @@
 		#calendrier .aide-bouton,
 		#calendrier .panneau-aide,
 		#calendrier .menu,
+		#calendrier .resume-mois,
 		#calendrier #toastContainer	{
 			display: none !important;
 		}
@@ -2361,7 +2382,10 @@
 			</div>
 
         <!-- Grille des portes (7 colonnes : Lundi au Dimanche) -->
-        <ul id="adventDoors"></ul>
+		<div id="zoneGrille">
+			<ul id="adventDoors"></ul>
+			<div id="resumeMois" class="resume-mois" hidden></div>
+		</div>
     </div>
 
     <!-- Fenêtre modale de zoom avec le système Pan / Grab -->
@@ -2595,10 +2619,21 @@
             const existant = evenements[cle];
             const jourFormate = String(mcJour).padStart(2, "0");
             const nom = `📌 Événement du ${jourFormate} ${moisNoms[moisAffiche]} ${anneeAffilee}`;
+			const lien = adventDoors.querySelector(`a[data-jour="${mcJour}"]`);
 
             if (existant) {
+				let supprimer = null;
                 // Il y a déjà un événement : supprimer, remplacer, ou abandon
-                const supprimer = await confirmToast(`${nom}`, `Ce jour a déjà « ${existant} ». Voulez-vous le supprimer ?`, "🗑️ Supprimer", "✏️ Remplacer");
+				if (
+					!lien.classList.contains("jour-actuel") &&
+					!lien.classList.contains("disabled") &&
+					lien.querySelector(".badge-evenement")
+				) {
+					supprimer = await confirmToast(`${nom}`, `Ce jour a déjà « ${existant} ». Voulez-vous le supprimer ?`, "🗑️ Supprimer", false);
+				} else {
+					supprimer = await confirmToast(`${nom}`, `Ce jour a déjà « ${existant} ». Voulez-vous le supprimer ?`, "🗑️ Supprimer", "✏️ Remplacer");
+				}
+
                 if (supprimer === true) {
                     delete evenements[cle];
                     sauverEvenements(evenements);
@@ -2607,6 +2642,7 @@
                         await traiterDossierImages(window.derniersHandlesCharges, false);
                     }
                     toast(`${nom} supprimé.`, "info");
+					if ("vibrate" in navigator) navigator.vibrate(10);
                     return;
                 }
                 if (supprimer === null) return; // croix ✕ : abandon
@@ -2624,6 +2660,7 @@
                 await traiterDossierImages(window.derniersHandlesCharges, false);
             }
             toast(`${nom} enregistré : « ${texte} »`, "success");
+			if ("vibrate" in navigator) navigator.vibrate(10);
         });
 
         // ============================================================
@@ -2662,6 +2699,7 @@
                         await traiterDossierImages(window.derniersHandlesCharges, false);
                     }
                     toast(`${nom} supprimé.`, "info");
+					if ("vibrate" in navigator) navigator.vibrate(10);
                     return;
                 }
                 if (supprimer === null) return; // croix ✕ : abandon
@@ -2679,6 +2717,7 @@
                 await traiterDossierImages(window.derniersHandlesCharges, false);
             }
             toast(`${nom} enregistré : « ${texte} »`, "success");
+			if ("vibrate" in navigator) navigator.vibrate(10);
         });
 
 		// ============================================================
@@ -3001,6 +3040,16 @@
             } else {
                 mcEvenementLigne.hidden = true;
             }
+
+			if (
+				lien.classList.contains("jour-actuel") ||
+				lien.classList.contains("disabled") ||
+				lien.querySelector(".badge-evenement")
+			) {
+				mcEvenementBouton.style.display = "";
+			} else {
+				mcEvenementBouton.style.display = "none";
+			}
 
 			// Nom de l'image associée
 			const image = lien.querySelector("img");
@@ -3615,6 +3664,19 @@
 			return noms.length > 0 ? noms.join(" • ") : null;
 		}
 
+		function majResumeMois() {
+			// Jours non verrouillés (= pas .disabled) qui ont une image
+			let nbImages = 0;
+			adventDoors.querySelectorAll("li a:not(.disabled)").forEach(a => {
+				const image = a.querySelector("img");
+				if (image && image.src && image.style.display !== "none") nbImages++;
+			});
+			const annivMois = Object.keys(getAnniversaires()).filter(c => c.startsWith(`${moisAffiche + 1}-`)).length;
+			const evtsMois = Object.keys(getEvenements()).filter(c => c.startsWith(`${anneeAffilee}-${moisAffiche + 1}-`)).length;
+			document.getElementById("resumeMois").textContent = `🖼️ ${nbImages}/${nbJoursMois} • 🎂 ${annivMois} • 📌 ${evtsMois}`;
+			document.getElementById("resumeMois").hidden = false;
+		}
+
 		const joursSemaine = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
 		const moisNoms = [
@@ -3799,6 +3861,7 @@
 					);
 				}
             }
+			majResumeMois();
 		}
 
 		construireGrilleCalendrier()
@@ -4236,6 +4299,7 @@
 					});
 				}
 			}
+			majResumeMois();
 		}
 
 		async function selectionnerDossierImages( clearLocalStorage = true ) {
@@ -4633,6 +4697,43 @@
 		btnImagePrecedente.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); imagePrecedente(); });
 		btnImageSuivante.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); imageSuivante(); });
 
+		// --- SWIPE TACTILE : image précédente / suivante dans la visionneuse ---
+		let swipeVisionX = null;
+		let swipeVisionY = null;
+
+		modalZoom.addEventListener("touchstart", (e) => {
+			if (e.touches.length === 1 &&
+				!e.target.closest("button") &&
+				!imgPleinEcran.classList.contains("zoomed")) {
+				swipeVisionX = e.touches[0].clientX;
+				swipeVisionY = e.touches[0].clientY;
+			} else {
+				swipeVisionX = null;
+			}
+		}, { passive: true });
+
+		modalZoom.addEventListener("touchend", (e) => {
+			if (swipeVisionX === null) return;
+			const deltaX = e.changedTouches[0].clientX - swipeVisionX;
+			const deltaY = e.changedTouches[0].clientY - swipeVisionY;
+			swipeVisionX = null;
+
+			if (Math.abs(deltaX) < 60 || Math.abs(deltaX) < Math.abs(deltaY) * 1.5) return;
+
+			if (e.cancelable) {
+				e.preventDefault();
+			} else {
+				suppressClick = true;
+				setTimeout(() => { suppressClick = false; }, 150);
+			}
+
+			if (deltaX < 0) {
+				imageSuivante();
+			} else {
+				imagePrecedente();
+			}
+		}, { passive: false });
+
 		document.addEventListener("keydown", (e) => {
 			if (!imgPleinEcran || !imgPleinEcran.getAttribute('src')) {
 				return;
@@ -4751,6 +4852,42 @@
 				await traiterDossierImages(window.derniersHandlesCharges, false);
 			}
 		});
+
+		// --- SWIPE TACTILE : changer de mois sur la grille ---
+		let swipeGrilleX = null;
+		let swipeGrilleY = null;
+
+		adventDoors.addEventListener("touchstart", (e) => {
+			if (e.touches.length === 1) {
+				swipeGrilleX = e.touches[0].clientX;
+				swipeGrilleY = e.touches[0].clientY;
+			} else {
+				swipeGrilleX = null;
+			}
+		}, { passive: true });
+
+		adventDoors.addEventListener("touchend", (e) => {
+			if (swipeGrilleX === null) return;
+			const deltaX = e.changedTouches[0].clientX - swipeGrilleX;
+			const deltaY = e.changedTouches[0].clientY - swipeGrilleY;
+			swipeGrilleX = null;
+
+			if (Math.abs(deltaX) < 60 || Math.abs(deltaX) < Math.abs(deltaY) * 1.5) return;
+
+			if (e.cancelable) {
+				e.preventDefault();   // suppression directe du clic parasite
+			} else {
+				suppressClick = true; // …ou filet de secours si le navigateur a déjà engagé un scroll
+				setTimeout(() => { suppressClick = false; }, 150);
+			}
+
+			if (deltaX < 0) {
+				btnMoisSuiv.click();
+			} else {
+				btnMoisPrec.click();
+			}
+			if ("vibrate" in navigator) navigator.vibrate(20);
+		}, { passive: false });
 
 		// Variable pour stocker le verrouillage d'écran
 		let wakeLock = null;
@@ -6078,7 +6215,7 @@
 			clone.id = "calendrier";
 			if (format === "mobile") clone.classList.add("portrait");
 			clone.innerHTML = document.body.innerHTML;
-			clone.querySelectorAll("script, .alerte-navigateur, #btnToggleCalendar, .menu, .twAudessus, #toastContainer, .aide-bouton, .panneau-aide, .menu-contextuel").forEach(s => s.remove());
+			clone.querySelectorAll("script, .alerte-navigateur, #btnToggleCalendar, .menu, .twAudessus, #toastContainer, .aide-bouton, .panneau-aide, .menu-contextuel, .resume-mois").forEach(s => s.remove());
 
 			// 2. Styles du <body> recopiés en inline (le clone n'est
 			//    plus un <body>, ses règles CSS ne s'appliquent pas)
@@ -6380,6 +6517,7 @@
             );
 			if (formatBureau === null) return;
             await exporterFondEcran(jourImageActuel, formatBureau ? "bureau" : "mobile");
+			if ("vibrate" in navigator) navigator.vibrate(20);
         });
 
 		document.getElementById("SaveImage").addEventListener("click", async () => {
@@ -6416,6 +6554,7 @@
 			} finally {
 				removeImagesBackground();
                 loaderOverlay.classList.add("cache");
+				if ("vibrate" in navigator) navigator.vibrate(20);
             }
 		});
 
@@ -6588,6 +6727,7 @@
                 loaderOverlay.classList.add("cache");
                 planche = null;
                 ctxPlanche = null;
+				if ("vibrate" in navigator) navigator.vibrate(20);
             }
         });
 
