@@ -474,6 +474,8 @@
 			padding: 2px 10px;
 			font-size: 12px;
 			cursor: pointer;
+			-webkit-user-select: none;
+			user-select: none;
 		}
 
 		.resume-mois:hover {
@@ -2513,7 +2515,7 @@
 		<div id="panneauRaccourcisGalerie" class="panneau-raccourcis">
 			<div class="raccourcis-titre">⌨ Raccourcis clavier</div>
 			<div class="raccourcis-ligne"><span class="touche">Échap</span> Fermer l'aperçu, puis la galerie</div>
-			<div class="raccourcis-ligne"><span class="touche">H</span> Afficher / masquer ce panneau</div>
+			<div class="raccourcis-ligne" title="Information du mois en cours"><span class="touche">H</span> Afficher / masquer ce panneau</div>
 		</div>
 
 		<!-- Bouton discret d'affichage des raccourcis -->
@@ -2541,21 +2543,22 @@
 	<button id="btnMenuActions" class="aide-bouton" title="Afficher/Masquez le menu">➕</button>
 	<!-- Bouton d'aide et mode d'emploi (visible sur l'écran principal) -->
 	<button id="btnAide" class="aide-bouton" title="Mode d'emploi" aria-label="Mode d'emploi">❓</button>
-	<div id="panneauAide" class="panneau-aide">
-		<div class="aide-titre">📅 Mon Calendrier — mode d'emploi</div>
-		<div>1️⃣ Sélectionnez ou glissez-déposez le dossier contenant vos images : le calendrier du mois se remplit automatiquement, une image par jour.</div>
-		<hr class="aide-separateur">
-		<div>🖱️ <strong>Clic simple</strong> sur un jour : image en plein écran.</div>
-		<div>🖱️ <strong>Double-clic</strong> sur un jour : choisir l'image de ce jour parmi vos photos.</div>
-		<div>🖱️ <strong>Clic droit</strong> sur un jour : affiche la date du jour et le nom de la photo.</div>
-		<div>📂 Naviguez entre les mois et les années avec les boutons ou le sélecteur de date.</div>
-		<div>🔔 Le bouton <strong>« Notifications »</strong> programme un rappel système le lendemain matin pour l'image du jour.</div>
-        <div>💾 Le bouton <strong>« Sauvegarde »</strong> exporte vos attributions d'images (jours et fonds d'écran) dans un fichier, ou restaure une sauvegarde précédente.</div>
+    <div id="panneauAide" class="panneau-aide">
+        <div class="aide-titre">📅 Mon Calendrier — mode d'emploi</div>
+        <div>1️⃣ Sélectionnez ou glissez-déposez le dossier contenant vos images : le calendrier du mois se remplit automatiquement, une image par jour.</div>
+        <hr class="aide-separateur">
+        <div>🖱️ <strong>Clic simple</strong> sur un jour : image en plein écran.</div>
+        <div>🖱️ <strong>Double-clic</strong> sur un jour : choisir l'image de ce jour parmi vos photos (filtre par nom et numéro du jour affichés sur les images déjà utilisées).</div>
+        <div>🖱️ <strong>Clic droit</strong> sur un jour : date, nom de la photo, 🎂 anniversaire récurrent et 📌 événement ponctuel à gérer.</div>
+        <div>📊 La <strong>pastille sous la grille</strong> résume le mois (images, anniversaires, événements) : un clic liste tout, fêtes et repères compris.</div>
+        <div>📂 Naviguez entre les mois et les années avec les boutons ou le sélecteur de date.</div>
+        <div>🔔 Le bouton <strong>« Notifications »</strong> affiche le rappel du jour (image, anniversaires, événements) à votre prochaine visite.</div>
+        <div>💾 Le bouton <strong>« Sauvegarde »</strong> exporte vos attributions d'images, anniversaires et événements dans un fichier daté, ou restaure une sauvegarde précédente.</div>
         <div>📂 Après une restauration sur un nouvel appareil, sélectionnez le même dossier d'images : vos photos se replacent automatiquement sur leurs jours.</div>
-		<div>🗑️ Le bouton <strong>« Réinitialiser les images »</strong> efface les images attribuées aux jours et en tire de nouvelles au hasard. Vos photos d'origine ne sont pas supprimées.</div>
-		<hr class="aide-separateur">
-		<div class="aide-confidentialite">🔒 Vos images ne quittent jamais votre appareil : tout est stocké localement dans votre navigateur, rien n'est envoyé sur Internet.</div>
-	</div>
+        <div>🗑️ Le bouton <strong>« Réinitialiser les images »</strong> efface les images attribuées aux jours et en tire de nouvelles au hasard. Vos photos d'origine ne sont pas supprimées.</div>
+        <hr class="aide-separateur">
+        <div class="aide-confidentialite">🔒 Vos images ne quittent jamais votre appareil : tout est stocké localement dans votre navigateur, rien n'est envoyé sur Internet.</div>
+    </div>
 
 	<!-- Notifications -->
 	<div id="toastContainer" aria-live="polite" aria-atomic="true"></div>
