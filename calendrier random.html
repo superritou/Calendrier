@@ -139,6 +139,21 @@
             }
         }
 
+		.loader-progress {
+			width: min(300px, 80vw);
+			height: 10px;
+			border: 1px solid rgba(255, 255, 255, 0.3);
+			border-radius: 6px;
+			background: rgba(255, 255, 255, 0.1);
+			overflow: hidden;
+		}
+		.loader-barre {
+			height: 100%;
+			width: 0%;
+			background: #0d9488;
+			transition: width 0.2s ease;
+		}
+
 		.actions-mois, .actions-diapo, .actions-dossier {
 			display: none;
 			gap: 8px;
@@ -458,7 +473,11 @@
 			border-radius: 12px;
 			padding: 2px 10px;
 			font-size: 12px;
-			pointer-events: none;
+			cursor: pointer;
+		}
+
+		.resume-mois:hover {
+			border: 1px solid #fbbf24;
 		}
 
         .-content h1 {
@@ -1884,7 +1903,7 @@
 			margin-bottom: 0px;
 		}
 
-		.menu-contextuel[hidden], .menu-contextuel #infoButton[hidden], .menu-contextuel .mc-actions[hidden], .menu-contextuel #mcAnniv[hidden], .menu-contextuel #mcEvenementLigne[hidden], #resumeMois[hidden] {
+		.loader-progress[hidden], .menu-contextuel[hidden], .menu-contextuel #infoButton[hidden], .menu-contextuel .mc-actions[hidden], .menu-contextuel #mcAnniv[hidden], .menu-contextuel #mcEvenementLigne[hidden], #resumeMois[hidden] {
 			display: none;
 		}
 
@@ -2341,6 +2360,7 @@
     <div id="loaderOverlay" class="twAudessus loader-overlay">
         <div class="spinner"></div>
         <div class="loader-text">Chargement de votre calendrier...</div>
+		<div id="loaderProgress" class="loader-progress" hidden><div class="loader-barre"></div></div>
     </div>
 	<button id="btnToggleCalendar">👁️ Masquer le calendrier</button>
 	<img id="one" loading="lazy">
@@ -2453,6 +2473,7 @@
 				<button id="galerieFermer" type="button" title="Fermer la galerie">❌</button>
 			</div>
 			<p id="galerieInfo"></p>
+			<input type="search" id="galerieFiltre" class="confirm-saisie" placeholder="🔍 Filtrer par nom de fichier...">
 			<div id="galerieGrille" class="galerie-grille"></div>
 		</div>
 
@@ -3665,17 +3686,37 @@
 		}
 
 		function majResumeMois() {
-			// Jours non verrouillés (= pas .disabled) qui ont une image
 			let nbImages = 0;
 			adventDoors.querySelectorAll("li a:not(.disabled)").forEach(a => {
 				const image = a.querySelector("img");
 				if (image && image.src && image.style.display !== "none") nbImages++;
 			});
+			// Stock d'images du dossier chargé (seulement s'il y en a un)
+			const stock = window.derniersHandlesCharges?.length;
+			const segmentDossier = stock ? ` • 📁 ${stock}` : "";
 			const annivMois = Object.keys(getAnniversaires()).filter(c => c.startsWith(`${moisAffiche + 1}-`)).length;
 			const evtsMois = Object.keys(getEvenements()).filter(c => c.startsWith(`${anneeAffilee}-${moisAffiche + 1}-`)).length;
-			document.getElementById("resumeMois").textContent = `🖼️ ${nbImages}/${nbJoursMois} • 🎂 ${annivMois} • 📌 ${evtsMois}`;
+			document.getElementById("resumeMois").textContent = `🖼️ ${nbImages}/${nbJoursMois}${segmentDossier} • 🎂 ${annivMois} • 📌 ${evtsMois}`;
 			document.getElementById("resumeMois").hidden = false;
 		}
+
+		document.getElementById("resumeMois").addEventListener("click", () => {
+			const anniversaires = getAnniversaires();
+			const evenements = getEvenements();
+			const lignes = [];
+			for (let i = 1; i <= nbJoursMois; i++) {
+				const jourFormate = String(i).padStart(2, "0");
+				const anniv = anniversaires[`${moisAffiche + 1}-${i}`];
+				if (anniv) lignes.push(`${jourFormate} — 🎂 ${anniv}`);
+				const evt = evenements[`${anneeAffilee}-${moisAffiche + 1}-${i}`];
+				if (evt) lignes.push(`${jourFormate} — 📌 ${evt}`);
+			}
+			if (lignes.length === 0) {
+				confirmToast(`📅 ${moisNoms[moisAffiche]} ${anneeAffilee}`, "Aucun anniversaire ni événement ce mois-ci.", "OK", false);
+			} else {
+				confirmToast(`📅 ${moisNoms[moisAffiche]} ${anneeAffilee}`, lignes.join("\n"), "OK", false);
+			}
+		});
 
 		const joursSemaine = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
@@ -3689,6 +3730,7 @@
 		];
 
 		let titre = "Mon Calendrier";
+		const CLE_DERNIERE_SAUVEGARDE = "calendrier_derniere_sauvegarde";
 
 		function construireGrilleCalendrier() {
 			const dateCible = new Date(anneeAffilee, moisAffiche, 1);
@@ -3862,6 +3904,15 @@
 				}
             }
 			majResumeMois();
+			// Rappel de sauvegarde : test à l'ouverture, sans minuteur
+			const aDesDonnees = Object.keys(localStorage).some(c => c.startsWith("calendrier_grille_") || c === CLE_ANNIVERSAIRES || c === CLE_EVENEMENTS);
+			const dernierSauv = Number(localStorage.getItem(CLE_DERNIERE_SAUVEGARDE));
+			if (aDesDonnees && !dernierSauv) {
+				toast("💾 Vous n'avez encore jamais sauvegardé — pensez au bouton 💾.", "warning");
+			} else if (aDesDonnees && dernierSauv) {
+				const joursEcoules = Math.floor((Date.now() - dernierSauv) / 86400000);
+				if (joursEcoules >= 30) toast(`💾 Dernière sauvegarde il y a ${joursEcoules} jours — pensez à en refaire une.`, "warning");
+			}
 		}
 
 		construireGrilleCalendrier()
@@ -4134,6 +4185,14 @@
 
 			// --- AFFICHAGE DES JOURS DU CALENDRIER ---
 			const liensJours = adventDoors.querySelectorAll("li a");
+			let joursTraites = 0;
+			const barreProgress = document.querySelector("#loaderProgress .loader-barre");
+			document.getElementById("loaderProgress").hidden = false;
+			barreProgress.style.width = "0%";
+			const majProgress = () => {
+				joursTraites++;
+				barreProgress.style.width = `${Math.round((joursTraites / nbJoursMois) * 100)}%`;
+			};
 
 			liensJours.forEach(a => {
 				const jourNum = a.dataset.jour;
@@ -4143,6 +4202,7 @@
 
 				if (fileName && handleMap[fileName]) {
 					handleMap[fileName].getFile().then(file => {
+						majProgress();
 						if (imgElement.dataset.objectUrl) {
 							URL.revokeObjectURL(imgElement.dataset.objectUrl);
 						}
@@ -4172,7 +4232,7 @@
 						imgElement.dataset.objectUrl = objectUrl;
 						imgElement.ariaLabel = fileName
 						imgElement.style.display = "block";
-					}).catch(() => {});
+					}).catch(() => {majProgress();});
 				}
 			});
 
@@ -4266,6 +4326,7 @@
 			infoStatut.innerHTML = `${titre} chargé avec succès ! </br>${texteDossier}  (${handlesAUtiliser.length}/${rawHandles.length} images)`;
 			btnDossier.textContent = "📁 Changer de dossier";
 			loaderOverlay.classList.add("cache");
+			document.getElementById("loaderProgress").hidden = true;
 			window.derniersHandlesCharges = handlesAUtiliser;
 
 			// ============================================================
@@ -4376,6 +4437,7 @@
                 setTimeout(() => URL.revokeObjectURL(url), 5000);
 
                 toast(`💾 Sauvegarde exportée (${Object.keys(donnees).length} entrées) — voir Téléchargements.`, "success");
+				localStorage.setItem(CLE_DERNIERE_SAUVEGARDE, Date.now().toString());
             } catch (e) {
                 console.log("Échec de l'export :", e);
                 toast("❌ Impossible d'exporter la sauvegarde sur ce navigateur.", "error");
@@ -5704,6 +5766,7 @@
 		const btnGaleriePleinEcran = document.getElementById("btnGaleriePleinEcran");
 		const btnRaccourcisGalerie = document.getElementById("btnRaccourcisGalerie");
 		const panneauRaccourcisGalerie = document.getElementById("panneauRaccourcisGalerie");
+		const galerieFiltre = document.getElementById("galerieFiltre");
 		let jourGalerieActuel = null;
 		let urlsGalerie = [];
 
@@ -5751,6 +5814,7 @@
 				: (repereGalerie ? ` <span style="color:#fbbf24;">• ${repereGalerie}</span>` : "");
 			galerieTitre.innerHTML = `${joursNoms[dateJour.getDay()]} ${jour} ${moisNoms[moisAffiche]} ${anneeAffilee}${libelleGalerie} — choisir l'image`;
 			galerieInfo.textContent = `${window.derniersHandlesCharges.length} images — cliquez sur une vignette pour l'attribuer à ce jour.`;
+			galerieFiltre.value = "";
 			galerieGrille.innerHTML = "";
 
 			const handlesTriees = [...window.derniersHandlesCharges]
@@ -5862,6 +5926,14 @@
 			fermerGalerie();
 			afficherImageJour(jour);
 		});
+
+		galerieFiltre.oninput = () => {
+			const recherche = galerieFiltre.value.trim().toLowerCase();
+			galerieGrille.querySelectorAll("button.galerie-item").forEach(bouton => {
+				const nom = bouton.querySelector("img").alt.toLowerCase();
+				bouton.style.display = nom.includes(recherche) ? "" : "none";
+			});
+		};
 
         // ============================================================
         // APERÇU AGRANDI D'UNE VIGNETTE DE LA GALERIE
