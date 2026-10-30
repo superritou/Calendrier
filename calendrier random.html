@@ -1263,6 +1263,28 @@
             border-color: #fbbf24;
         }
 
+        /* Numéro du jour sur les images déjà attribuées dans le mois */
+        .galerie-jour {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            z-index: 2;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 22px;
+            height: 22px;
+            padding: 0 5px;
+            border-radius: 6px;
+            background: rgba(13, 148, 136, 0.9);
+            border: 1px solid #2dd4bf;
+            color: #fff;
+            font-size: 12px;
+            font-weight: bold;
+            pointer-events: none;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+        }
+
         /* Aperçu agrandi */
         .galerie-apercu {
             z-index: 100020;
@@ -1933,6 +1955,16 @@
 
 			.twAudessus img.twImg {
 				border-width: 10px;
+			}
+
+			.galerie-boite {
+				padding: 8px;
+			}
+
+			.galerie-grille {
+				grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+				gap: 6px;
+				padding: 8px;
 			}
 
 			#infoStatut {
@@ -3710,9 +3742,17 @@
 				if (anniv) lignes.push(`${jourFormate} — 🎂 ${anniv}`);
 				const evt = evenements[`${anneeAffilee}-${moisAffiche + 1}-${i}`];
 				if (evt) lignes.push(`${jourFormate} — 📌 ${evt}`);
+				// Férié ou repère du jour (même priorité que la grille : le férié prime)
+                const ferieMois = trouverJourFerie(anneeAffilee, moisAffiche, i);
+                const repereMois = ferieMois ? null : trouverJoursReperes(anneeAffilee, moisAffiche, i);
+                if (ferieMois) {
+                    lignes.push(`${jourFormate} — <span style="color:#c084fc;font-weight:bold;">🎉 ${ferieMois.nom}</span>`);
+                } else if (repereMois) {
+                    lignes.push(`${jourFormate} — <span style="color:#fbbf24;font-weight:bold;">✨ ${repereMois}</span>`);
+                }
 			}
 			if (lignes.length === 0) {
-				confirmToast(`📅 ${moisNoms[moisAffiche]} ${anneeAffilee}`, "Aucun anniversaire ni événement ce mois-ci.", "OK", false);
+                confirmToast(`📅 ${moisNoms[moisAffiche]} ${anneeAffilee}`, "Aucun anniversaire, événement, fête ni repère ce mois-ci.", "OK", false);
 			} else {
 				confirmToast(`📅 ${moisNoms[moisAffiche]} ${anneeAffilee}`, lignes.join("\n"), "OK", false);
 			}
@@ -5805,6 +5845,11 @@
 			const storageKeyGrille = `calendrier_grille_${anneeAffilee}_${moisAffiche + 1}`;
 			const attribution = JSON.parse(localStorage.getItem(storageKeyGrille)) || {};
 			const nomActuel = attribution[`jour_${jour}`];
+            const joursParImage = {};
+            for (const [cle, nom] of Object.entries(attribution)) {
+                const numJour = cle.split("_")[1];
+                if (numJour) joursParImage[nom] = numJour;
+            }
 
 			const dateJour = new Date(anneeAffilee, moisAffiche, jour);
 			const ferieGalerie = trouverJourFerie(anneeAffilee, moisAffiche, jour);
@@ -5830,6 +5875,15 @@
                 img.loading = "lazy";
                 img.alt = handle.name;
                 bouton.appendChild(img);
+                // Numéro du jour si l'image est déjà attribuée dans le mois
+                const jourUtilise = joursParImage[handle.name];
+                if (jourUtilise) {
+                    const badgeJour = document.createElement("span");
+                    badgeJour.className = "galerie-jour";
+                    badgeJour.textContent = jourUtilise;
+                    badgeJour.title = `Attribuée au jour ${jourUtilise}`;
+                    bouton.appendChild(badgeJour);
+                }
 
                 // Bouton d'agrandissement (la vignette reste cliquable pour choisir)
                 const zoom = document.createElement("span");
@@ -5901,6 +5955,24 @@
 			galerieGrille.querySelectorAll(".galerie-item").forEach(b => b.classList.remove("selectionne"));
 			boutonClique.classList.add("selectionne");
 			galerieInfo.textContent = `✅ « ${nomFichier} » attribué au jour ${jour}.`;
+            // Mise à jour des badges numéro du jour (l'attribution vient de changer)
+            const joursMAJ = {};
+            for (const [cle, nom] of Object.entries(attribution)) {
+                const numJour = cle.split("_")[1];
+                if (numJour) joursMAJ[nom] = numJour;
+            }
+            galerieGrille.querySelectorAll(".galerie-item").forEach(b => {
+                const ancienBadge = b.querySelector(".galerie-jour");
+                if (ancienBadge) ancienBadge.remove();
+                const numJour = joursMAJ[b.querySelector("img")?.alt];
+                if (numJour) {
+                    const badgeJour = document.createElement("span");
+                    badgeJour.className = "galerie-jour";
+                    badgeJour.textContent = numJour;
+                    badgeJour.title = `Attribuée au jour ${numJour}`;
+                    b.appendChild(badgeJour);
+                }
+            });
 		}
 
 		galerieFermerBouton.addEventListener("click", fermerGalerie);
