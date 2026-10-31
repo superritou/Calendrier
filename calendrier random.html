@@ -3784,7 +3784,7 @@
 				if (evt) lignes.push(`${jourFormate} — 📌 ${evt}`);
 				// Férié ou repère du jour (même priorité que la grille : le férié prime)
                 const ferieMois = trouverJourFerie(anneeAffilee, moisAffiche, i);
-                const repereMois = ferieMois ? null : trouverJoursReperes(anneeAffilee, moisAffiche, i);
+                const repereMois = trouverJoursReperes(anneeAffilee, moisAffiche, i);
                 if (ferieMois) {
                     lignes.push(`${jourFormate} — <span style="color:#c084fc;font-weight:bold;">🎉 ${ferieMois.nom}</span>`);
                 }
@@ -6413,7 +6413,7 @@
                 const evtExp = evenementsExp[`${anneeAffilee}-${moisAffiche + 1}-${i}`];
                 if (evtExp) lignesExport.push(`${jourFormate} — 📌 ${evtExp}`);
                 const ferieExp = trouverJourFerie(anneeAffilee, moisAffiche, i);
-                const repereExp = ferieExp ? null : trouverJoursReperes(anneeAffilee, moisAffiche, i);
+                const repereExp = trouverJoursReperes(anneeAffilee, moisAffiche, i);
                 if (ferieExp) {
                     lignesExport.push(`${jourFormate} — <span style="color:#c084fc;font-weight:bold;">🎉 ${ferieExp.nom}</span>`);
                 }
