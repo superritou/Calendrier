@@ -410,7 +410,7 @@
             font-weight: bold;
         }
 
-        .badge-anniversaire, .badge-evenement {
+        .badge-anniversaire, .badge-evenement, .ferie-info {
             position: absolute;
             bottom: 2px;
             right: 3px;
@@ -424,6 +424,11 @@
             font-size: 13px;
             text-shadow: 0 1px 3px rgba(0,0,0,0.9);
         }
+
+		.ferie-info {
+			top: 2px;
+			bottom: auto;
+		}
 
         .badge-evenement {
             left: 3px;
@@ -1147,7 +1152,7 @@
 		.galerie-entete h2 {
 			margin: 0;
 			font-size: 1.3rem;
-			color: #c084fc;
+			color: #2dd4bf;
 			text-align: left;
 		}
 
@@ -1785,7 +1790,7 @@
 
 		.confirm-titre {
 			margin-bottom: 12px;
-			color: #fbbf24;
+			color: #2dd4bf;
 			font-size: 18px;
 			font-weight: bold;
 			padding-right: 48px;
@@ -1981,7 +1986,7 @@
 				border-width: 10px;
 			}
 
-			.badge-anniversaire, .badge-evenement {
+			.badge-anniversaire, .badge-evenement, .ferie-info div {
 				font-size: 11px;
 			}
 
@@ -3667,9 +3672,11 @@
 
 		// Renvoie {date, nom} si le jour est férié, sinon null
 		function trouverJourFerie(an, mois, jour) {
-			return listeJoursFeries(an).find(f =>
-				f.date.getDate() === jour && f.date.getMonth() === mois
-			) || null;
+			const noms = listeJoursFeries(an)
+				.filter(f => f.date.getDate() === jour && f.date.getMonth() === mois)
+				.map(f => f.nom);
+
+			return noms.length > 0 ? noms.join(" • ") : null;
 		}
 
 		// ============================================================
@@ -3786,7 +3793,7 @@
                 const ferieMois = trouverJourFerie(anneeAffilee, moisAffiche, i);
                 const repereMois = trouverJoursReperes(anneeAffilee, moisAffiche, i);
                 if (ferieMois) {
-                    lignes.push(`${jourFormate} — <span style="color:#c084fc;font-weight:bold;">🎉 ${ferieMois.nom}</span>`);
+                    lignes.push(`${jourFormate} — <span style="color:#c084fc;font-weight:bold;">🎉 ${ferieMois}</span>`);
                 }
 				if (repereMois) {
                     lignes.push(`${jourFormate} — <span style="color:#fbbf24;font-weight:bold;">✨ ${repereMois}</span>`);
@@ -3881,8 +3888,10 @@
 				const jourFormate = String(i).padStart(2, "0");
 
 				const ferieDuJour = trouverJourFerie(anneeAffilee, moisAffiche, i);
-				const repereDuJour = ferieDuJour ? null : trouverJoursReperes(anneeAffilee, moisAffiche, i);
-				const libelleSpecial = ferieDuJour ? ferieDuJour.nom : repereDuJour;
+				const repereDuJour = trouverJoursReperes(anneeAffilee, moisAffiche, i);
+				const libelleSpecial = [ferieDuJour, repereDuJour]
+					.filter(Boolean)
+					.join(" • ");
 				a.title = `${joursNoms[dateCourante.getDay()]} ${jourFormate} ${moisNoms[moisAffiche]} ${anneeAffilee}${libelleSpecial ? ` • ${libelleSpecial}` : ""}`;
 				a.dataset.jour = i;
 
@@ -3910,7 +3919,7 @@
 				let visibile = imgAffichees() ? "hidden" : "visible";
 				visibile = "visibility: " + visibile + ";"
 
-				a.innerHTML = `<span>${i}</span><img loading="lazy" style="display: none; ${visibile}" alt="Jour ${i}">`;
+				a.innerHTML = `<span>${i}</span><div class="ferie-info"></div><img loading="lazy" style="display: none; ${visibile}" alt="Jour ${i}">`;
 
 				const texteAnniv = getAnniversaires()[`${moisAffiche + 1}-${i}`];
                 if (texteAnniv) {
@@ -3930,6 +3939,20 @@
                     badgeEvt.title = `📌 ${texteEvenement}`;
                     a.appendChild(badgeEvt);
                 }
+
+				if (ferieDuJour) {
+					const badgeferie = document.createElement("div");
+                    badgeferie.textContent = "🎉";
+                    badgeferie.title = `🎉 ${ferieDuJour}`;
+                    a.querySelector(".ferie-info").appendChild(badgeferie);
+				}
+
+				if (repereDuJour) {
+					const badgeinfo = document.createElement("div");
+                    badgeinfo.textContent = "✨";
+                    badgeinfo.title = `✨ ${repereDuJour}`;
+                    a.querySelector(".ferie-info").appendChild(badgeinfo);
+				}
 
 				a.addEventListener("click", (e) => {
 					if (suppressClick) {
@@ -5894,10 +5917,12 @@
 
 			const dateJour = new Date(anneeAffilee, moisAffiche, jour);
 			const ferieGalerie = trouverJourFerie(anneeAffilee, moisAffiche, jour);
-			const repereGalerie = ferieGalerie ? null : trouverJoursReperes(anneeAffilee, moisAffiche, jour);
-			const libelleGalerie = ferieGalerie
-				? ` <span style="color:#c084fc;font-weight:bold;">• ${ferieGalerie.nom}</span>`
-				: (repereGalerie ? ` <span style="color:#fbbf24;">• ${repereGalerie}</span>` : "");
+			const repereGalerie = trouverJoursReperes(anneeAffilee, moisAffiche, jour);
+
+			const libelleGalerie = [
+				ferieGalerie ? `<span style="color:#c084fc;font-weight:bold;"> • ${ferieGalerie}</span>` : "",
+				repereGalerie ? `<span style="color:#fbbf24;"> • ${repereGalerie}</span>` : ""
+			].filter(Boolean).join(" ");
 			galerieTitre.innerHTML = `${joursNoms[dateJour.getDay()]} ${jour} ${moisNoms[moisAffiche]} ${anneeAffilee}${libelleGalerie} — choisir l'image`;
 			galerieInfo.textContent = `${window.derniersHandlesCharges.length} images — cliquez sur une vignette pour l'attribuer à ce jour.`;
 			galerieFiltre.value = "";
@@ -6415,7 +6440,7 @@
                 const ferieExp = trouverJourFerie(anneeAffilee, moisAffiche, i);
                 const repereExp = trouverJoursReperes(anneeAffilee, moisAffiche, i);
                 if (ferieExp) {
-                    lignesExport.push(`${jourFormate} — <span style="color:#c084fc;font-weight:bold;">🎉 ${ferieExp.nom}</span>`);
+                    lignesExport.push(`${jourFormate} — <span style="color:#c084fc;font-weight:bold;">🎉 ${ferieExp}</span>`);
                 }
 				if (repereExp) {
                     lignesExport.push(`${jourFormate} — <span style="color:#fbbf24;font-weight:bold;">✨ ${repereExp}</span>`);
