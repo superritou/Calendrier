@@ -3729,9 +3729,18 @@
 			// Stock d'images du dossier chargé (seulement s'il y en a un)
 			const stock = window.derniersHandlesCharges?.length;
 			const segmentDossier = stock ? ` • 📁 ${stock}` : "";
+			let nbFeries = 0;
+            let nbReperes = 0;
+            for (let i = 1; i <= nbJoursMois; i++) {
+                if (trouverJourFerie(anneeAffilee, moisAffiche, i)) {
+                    nbFeries++;
+                } else if (trouverJoursReperes(anneeAffilee, moisAffiche, i)) {
+                    nbReperes++;
+                }
+            }
 			const annivMois = Object.keys(getAnniversaires()).filter(c => c.startsWith(`${moisAffiche + 1}-`)).length;
 			const evtsMois = Object.keys(getEvenements()).filter(c => c.startsWith(`${anneeAffilee}-${moisAffiche + 1}-`)).length;
-			document.getElementById("resumeMois").textContent = `🖼️ ${nbImages}/${nbJoursMois}${segmentDossier} • 🎂 ${annivMois} • 📌 ${evtsMois}`;
+			document.getElementById("resumeMois").textContent = `🖼️ ${nbImages}/${nbJoursMois}${segmentDossier} • 🎂 ${annivMois} • 📌 ${evtsMois} • 🎉 ${nbFeries} • ✨ ${nbReperes}`;
 			document.getElementById("resumeMois").hidden = false;
 		}
 
