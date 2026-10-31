@@ -2362,12 +2362,38 @@
 			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
 		}
 
+        #calendrier #resumeExport {
+            display: block;
+            position: absolute;
+            top: 8px;
+            right: 13px;
+            z-index: 5;
+            max-width: min(340px, calc(100vw - 20px));
+            max-width: min(340px, calc(100dvw - 20px));
+            max-height: min(420px, calc(100vh - 200px));
+            max-height: min(420px, calc(100dvh - 200px));
+            overflow: hidden;
+            padding: 8px 12px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 2px ridge #2dd4bf;
+            border-radius: 10px;
+            font-size: 13px;
+            line-height: 1.4;
+            text-align: left;
+            color: #e2e8f0;
+        }
+
+        /* Mois sans rien à lister : pas de boîte vide */
+        #calendrier #resumeExport:empty {
+            display: none;
+        }
+
 		#calendrier.portrait #one, #calendrier.portrait #two, #calendrier.portrait #three {
 			max-width: calc(1080px / 2);
 			max-height: 500px;
 		}
 
-		#one, #two, #three {
+		#one, #two, #three, #resumeExport {
 			display: none;
 		}
 
@@ -2400,6 +2426,7 @@
 	<img id="one" loading="lazy">
 	<img id="two" loading="lazy">
 	<img id="three" loading="lazy">
+	<div id="resumeExport"></div>
 		<div class="-content">
 			<h1 id="titreCalendrier">Mon Calendrier</h1>
 			<div class="menu">
@@ -3734,7 +3761,8 @@
             for (let i = 1; i <= nbJoursMois; i++) {
                 if (trouverJourFerie(anneeAffilee, moisAffiche, i)) {
                     nbFeries++;
-                } else if (trouverJoursReperes(anneeAffilee, moisAffiche, i)) {
+                }
+				if (trouverJoursReperes(anneeAffilee, moisAffiche, i)) {
                     nbReperes++;
                 }
             }
@@ -3759,7 +3787,8 @@
                 const repereMois = ferieMois ? null : trouverJoursReperes(anneeAffilee, moisAffiche, i);
                 if (ferieMois) {
                     lignes.push(`${jourFormate} — <span style="color:#c084fc;font-weight:bold;">🎉 ${ferieMois.nom}</span>`);
-                } else if (repereMois) {
+                }
+				if (repereMois) {
                     lignes.push(`${jourFormate} — <span style="color:#fbbf24;font-weight:bold;">✨ ${repereMois}</span>`);
                 }
 			}
@@ -6372,6 +6401,28 @@
 			if (format === "mobile") clone.classList.add("portrait");
 			clone.innerHTML = document.body.innerHTML;
 			clone.querySelectorAll("script, .alerte-navigateur, #btnToggleCalendar, .menu, .twAudessus, #toastContainer, .aide-bouton, .panneau-aide, .menu-contextuel, .resume-mois").forEach(s => s.remove());
+
+            // Liste résumé du mois (🎂 📌 🎉 ✨) dans le panneau d'export, avec les couleurs du toast
+            const lignesExport = [];
+            const anniversairesExp = getAnniversaires();
+            const evenementsExp = getEvenements();
+            for (let i = 1; i <= nbJoursMois; i++) {
+                const jourFormate = String(i).padStart(2, "0");
+                const annivExp = anniversairesExp[`${moisAffiche + 1}-${i}`];
+                if (annivExp) lignesExport.push(`${jourFormate} — 🎂 ${annivExp}`);
+                const evtExp = evenementsExp[`${anneeAffilee}-${moisAffiche + 1}-${i}`];
+                if (evtExp) lignesExport.push(`${jourFormate} — 📌 ${evtExp}`);
+                const ferieExp = trouverJourFerie(anneeAffilee, moisAffiche, i);
+                const repereExp = ferieExp ? null : trouverJoursReperes(anneeAffilee, moisAffiche, i);
+                if (ferieExp) {
+                    lignesExport.push(`${jourFormate} — <span style="color:#c084fc;font-weight:bold;">🎉 ${ferieExp.nom}</span>`);
+                }
+				if (repereExp) {
+                    lignesExport.push(`${jourFormate} — <span style="color:#fbbf24;font-weight:bold;">✨ ${repereExp}</span>`);
+                }
+            }
+            const panneauExport = clone.querySelector("#resumeExport");
+            if (panneauExport) panneauExport.innerHTML = lignesExport.join("<br>");
 
 			// 2. Styles du <body> recopiés en inline (le clone n'est
 			//    plus un <body>, ses règles CSS ne s'appliquent pas)
