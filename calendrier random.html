@@ -3110,13 +3110,13 @@
 			}
 
 			// Titre du jour
+			let titreJour = "📅 "
 			if (lien.classList.contains("jour-actuel")) {
-				mcTitre.textContent = "📅 Aujourd'hui"
-			} else {
-				const dateJourMC = new Date(anneeAffilee, moisAffiche, jour);
-				const jourFormateMC = String(jour).padStart(2, "0");
-				mcTitre.textContent = `📅 ${joursNoms[dateJourMC.getDay()]} ${jourFormateMC} ${moisNoms[moisAffiche]} ${anneeAffilee}`;
+				titreJour += "Aujourd'hui<br>"
 			}
+			const dateJourMC = new Date(anneeAffilee, moisAffiche, jour);
+			const jourFormateMC = String(jour).padStart(2, "0");
+			mcTitre.innerHTML = `${titreJour}${joursNoms[dateJourMC.getDay()]} ${jourFormateMC} ${moisNoms[moisAffiche]} ${anneeAffilee}`;
 
             const badgeAnniv = lien.querySelector(".badge-anniversaire");
             const anniv = badgeAnniv ? badgeAnniv.title : null;
@@ -3227,7 +3227,7 @@
 			clearTimeout(timerInfobulle);
 
 			// Titre du jour
-			mcTitre.textContent = "ℹ️ Info:";
+			mcTitre.innerHTML = "ℹ️ Info:";
 
 			mcFichier.textContent = texte;
 
