@@ -1779,8 +1779,12 @@
 
 		.confirm-boite {
 			position: absolute;
-			width: min(420px, calc(100vw - 40px));
-			width: min(420px, calc(100dvw - 40px));
+			min-width: 420px;
+			max-width: 80vw;
+			max-width: 80dvw;
+			max-height: 80vh;
+			max-height: 80dvh;
+			overflow-y: auto;
 			padding: 20px;
 			border-radius: 14px;
 			background: rgba(15, 23, 42, 0.98);
@@ -1789,6 +1793,8 @@
 		}
 
 		.confirm-titre {
+			position: sticky;
+			top: 0px;
 			margin-bottom: 12px;
 			color: #2dd4bf;
 			font-size: 18px;
@@ -3797,31 +3803,58 @@
 			document.getElementById("resumeMois").hidden = false;
 		}
 
-		document.getElementById("resumeMois").addEventListener("click", () => {
+		// Récapitulatif ANNUEL : accessible via le bouton « 📅 Année » du popup du mois
+		function listerAnnee() {
+			const anniversaires = getAnniversaires();
+			const evenements = getEvenements();
+			const lignes = [];
+			for (let m = 0; m < 12; m++) {
+				const nbJoursMoisAnnee = new Date(anneeAffilee, m + 1, 0).getDate();
+				for (let j = 1; j <= nbJoursMoisAnnee; j++) {
+					const jourFormate = String(j).padStart(2, "0");
+					const nomJour = joursNoms[new Date(anneeAffilee, m, j).getDay()];
+					const anniv = anniversaires[`${m + 1}-${j}`];
+					if (anniv) lignes.push(`${nomJour} ${jourFormate} ${moisNoms[m]} — 🎂 ${anniv}`);
+					const evt = evenements[`${anneeAffilee}-${m + 1}-${j}`];
+					if (evt) lignes.push(`${nomJour} ${jourFormate} ${moisNoms[m]} — 📌 ${evt}`);
+					const ferieAnnee = trouverJourFerie(anneeAffilee, m, j);
+					const repereAnnee = trouverJoursReperes(anneeAffilee, m, j);
+					if (ferieAnnee) lignes.push(`${nomJour} ${jourFormate} ${moisNoms[m]} — <span style="color:#c084fc;font-weight:bold;">🎉 ${ferieAnnee}</span>`);
+					if (repereAnnee) lignes.push(`${nomJour} ${jourFormate} ${moisNoms[m]} — <span style="color:#fbbf24;font-weight:bold;">✨ ${repereAnnee}</span>`);
+				}
+			}
+			if (lignes.length === 0) {
+				confirmToast(`📅 Année ${anneeAffilee}`, "Aucun anniversaire, événement, fête ni repère cette année.", "OK", false);
+			} else {
+				confirmToast(`📅 Année ${anneeAffilee}`, lignes.join("\n"), "OK", false);
+			}
+		}
+
+		document.getElementById("resumeMois").addEventListener("click", async () => {
 			const anniversaires = getAnniversaires();
 			const evenements = getEvenements();
 			const lignes = [];
 			for (let i = 1; i <= nbJoursMois; i++) {
 				const jourFormate = String(i).padStart(2, "0");
+				const nomJour = joursNoms[new Date(anneeAffilee, moisAffiche, i).getDay()];
 				const anniv = anniversaires[`${moisAffiche + 1}-${i}`];
-				if (anniv) lignes.push(`${jourFormate} — 🎂 ${anniv}`);
+				if (anniv) lignes.push(`${nomJour} ${jourFormate} — 🎂 ${anniv}`);
 				const evt = evenements[`${anneeAffilee}-${moisAffiche + 1}-${i}`];
-				if (evt) lignes.push(`${jourFormate} — 📌 ${evt}`);
+				if (evt) lignes.push(`${nomJour} ${jourFormate} — 📌 ${evt}`);
 				// Férié ou repère du jour (même priorité que la grille : le férié prime)
-                const ferieMois = trouverJourFerie(anneeAffilee, moisAffiche, i);
-                const repereMois = trouverJoursReperes(anneeAffilee, moisAffiche, i);
-                if (ferieMois) {
-                    lignes.push(`${jourFormate} — <span style="color:#c084fc;font-weight:bold;">🎉 ${ferieMois}</span>`);
-                }
+				const ferieMois = trouverJourFerie(anneeAffilee, moisAffiche, i);
+				const repereMois = trouverJoursReperes(anneeAffilee, moisAffiche, i);
+				if (ferieMois) {
+					lignes.push(`${nomJour} ${jourFormate} — <span style="color:#c084fc;font-weight:bold;">🎉 ${ferieMois}</span>`);
+				}
 				if (repereMois) {
-                    lignes.push(`${jourFormate} — <span style="color:#fbbf24;font-weight:bold;">✨ ${repereMois}</span>`);
-                }
+					lignes.push(`${nomJour} ${jourFormate} — <span style="color:#fbbf24;font-weight:bold;">✨ ${repereMois}</span>`);
+				}
 			}
-			if (lignes.length === 0) {
-                confirmToast(`📅 ${moisNoms[moisAffiche]} ${anneeAffilee}`, "Aucun anniversaire, événement, fête ni repère ce mois-ci.", "OK", false);
-			} else {
-				confirmToast(`📅 ${moisNoms[moisAffiche]} ${anneeAffilee}`, lignes.join("\n"), "OK", false);
-			}
+			const versAnnee = lignes.length === 0
+				? await confirmToast(`📅 ${moisNoms[moisAffiche]} ${anneeAffilee}`, "Aucun anniversaire, événement, fête ni repère ce mois-ci.", "OK", "📅 Info année")
+				: await confirmToast(`📅 ${moisNoms[moisAffiche]} ${anneeAffilee}`, lignes.join("\n"), "OK", "📅 Info année");
+			if (versAnnee === false) listerAnnee();
 		});
 
 		const joursSemaine = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
