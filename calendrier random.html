@@ -1779,7 +1779,8 @@
 
 		.confirm-boite {
 			position: absolute;
-			min-width: 420px;
+			min-width: min(420px, calc(100vw - 40px));
+			min-width: min(420px, calc(100dvw - 40px));
 			max-width: 80vw;
 			max-width: 80dvw;
 			max-height: 80vh;
