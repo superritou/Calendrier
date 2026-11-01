@@ -1,0 +1,66 @@
+{
+    "id": "./calendrier random.html",
+    "name": "Mon Calendrier",
+    "short_name": "Calendrier",
+    "description": "Mon calendrier mensuel personnalisé avec photos",
+    "lang": "fr",
+    "dir": "ltr",
+    "start_url": "./calendrier random.html",
+    "scope": "./",
+    "display": "standalone",
+    "launch_handler": { "client_mode": "focus-existing" },
+    "background_color": "#24283a",
+    "theme_color": "#24283a",
+    "developer": { "name": "Éric Rousseau" },
+    "x-editor": "Éric Rousseau 😊",
+	"icons": [
+		{
+			"src": "calendrier icone-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "calendrier-maskable-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		}
+	],
+	"shortcuts": [
+		{
+			"name": "Aujourd'hui",
+			"url": "./calendrier random.html",
+			"description": "Aller à aujourd'hui",
+			"icons": [
+				{
+					"src": "calendrier-96.png",
+					"sizes": "96x96",
+					"type": "image/png"
+				}
+			]
+		}
+	],
+    "protocol_handlers": [
+        {
+            "protocol": "web+calendrier",
+            "url": "./calendrier random.html?url=%s"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "screenshot-desktop.png",
+            "sizes": "1920x1080",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Mon Calendrier sur ordinateur"
+        },
+        {
+            "src": "screenshot-mobile.png",
+            "sizes": "1080x1920",
+            "type": "image/png",
+			"form_factor": "narrow",
+            "label": "Mon Calendrier sur mobile"
+        }
+    ]
+}
