@@ -1849,12 +1849,57 @@
 			transform: translateY(-2px);
 		}
 
-		#confirmAnnulation {
+		.confirmAnnulation {
 			top: 8px;
             right: 8px;
             font-size: 20px;
             height: 40px;
             width: 40px;
+		}
+
+		/* Choix des extensions d'images à l'import */
+		#extensionsOverlay {
+			opacity: 1;
+			visibility: visible;
+		}
+
+		#extensionsOverlay[hidden] {
+			display: none;
+		}
+
+		.extensions-liste {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px;
+			justify-content: center;
+			margin-bottom: 20px;
+			max-height: 40vh;
+			max-height: 40dvh;
+			overflow-y: auto;
+		}
+
+		.ext-choix {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			padding: 6px 12px;
+			border: 1px solid rgba(255,255,255,0.3);
+			border-radius: 8px;
+			background: rgba(255,255,255,0.08);
+			cursor: pointer;
+			user-select: none;
+			-webkit-user-select: none;
+			font-size: 13px;
+		}
+
+		.ext-choix:has(input:checked) {
+			border-color: #2dd4bf;
+			background: rgba(13, 148, 136, 0.35);
+			font-weight: bold;
+		}
+
+		.ext-choix input {
+			accent-color: #2dd4bf;
 		}
 
 		.alerte-navigateur {
@@ -2605,14 +2650,28 @@
 
 	<!-- Confirmation personnalisée -->
 	<div id="confirmOverlay" class="twAudessus confirm-overlay" hidden>
-		<div class="confirm-boite" role="dialog" aria-modal="true" aria-labelledby="confirmTitre">
-			<button class="fermer" id="confirmAnnulation" type="button" title="Annuler">❌</button>
+		<div id="confirmBoite" class="confirm-boite" role="dialog" aria-modal="true" aria-labelledby="confirmTitre">
+			<button class="fermer confirmAnnulation" id="confirmAnnulation" type="button" title="Annuler">❌</button>
 			<div id="confirmTitre" class="confirm-titre">Confirmation</div>
 			<div id="confirmMessage" class="confirm-message"></div>
 			<input type="text" id="confirmSaisie" class="confirm-saisie" hidden>
 			<div class="confirm-actions">
 				<button id="confirmValider" type="button">Oui</button>
 				<button id="confirmAnnuler" type="button">Non</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- Choix des extensions d'images (à chaque import de dossier) -->
+	<div id="extensionsOverlay" class="twAudessus" hidden>
+		<div id="confirmBoiteB" class="confirm-boite">
+			<button class="fermer confirmAnnulation" id="extAnnulation" type="button" title="Annuler">❌</button>
+			<div class="confirm-titre">🧩 Extensions des images</div>
+			<div class="confirm-message" style="text-align: center; margin-bottom: 12px;">Cochez les extensions à importer :</div>
+			<div id="extensionsListe" class="extensions-liste"></div>
+			<div class="confirm-actions">
+				<button id="extTout" type="button">Tout cocher</button>
+				<button id="extValider" type="button">Importer</button>
 			</div>
 		</div>
 	</div>
@@ -2673,6 +2732,12 @@
 				confirmAnnulation.click();
 			}
 
+			if (overlay.hidden === false &&
+				overlay.contains(e.target) &&
+				!confirmBoiteB.contains(e.target)) {
+				extAnnulation.click();
+			}
+
 			if (!menuContextuel.hidden && !menuContextuel.contains(e.target)) {
 				fermerMenuContextuel();
 			}
@@ -2688,6 +2753,9 @@
 				}
 				if (confirmOverlay.hidden === false) {
 					confirmAnnulation.click();
+				}
+				if (overlay.hidden === false) {
+					extAnnulation.click();
 				}
 			}
 		});
@@ -3341,7 +3409,11 @@
 		const confirmAnnuler = document.getElementById("confirmAnnuler");
 		const confirmValider = document.getElementById("confirmValider");
 		const confirmAnnulation = document.getElementById("confirmAnnulation");
-		const confirmBoite = document.querySelector(".confirm-boite");
+		const confirmBoite = document.getElementById("confirmBoite");
+		const overlay = document.getElementById("extensionsOverlay");
+		const liste = document.getElementById("extensionsListe");
+		const extAnnulation = document.getElementById("extAnnulation");
+		const confirmBoiteB = document.getElementById("confirmBoiteB");
 
 		async function toast(message, type = "info", duree = 5500) {
 			const element = document.createElement("div");
@@ -4217,29 +4289,15 @@
 			});
 		}
 
-		async function getFileHandlesFromDirectory(dirHandle) {
+		async function getFileHandlesFromDirectory(dirHandle, filtreRe = EXT_RE_DEFAUT) {
 			let handles = [];
 			for await (const entry of dirHandle.values()) {
 				if (entry.kind === "file") {
-					const fileName = entry.name.toLowerCase();
-					if (
-						fileName.endsWith(".jpg") ||
-						fileName.endsWith(".jpeg") ||
-						fileName.endsWith(".png") ||
-						fileName.endsWith(".webp") ||
-						fileName.endsWith(".gif") ||
-						fileName.endsWith(".avif") ||
-						fileName.endsWith(".bmp") ||
-						fileName.endsWith(".tif") ||
-						fileName.endsWith(".tiff") ||
-						fileName.endsWith(".heic") ||
-						fileName.endsWith(".heif") ||
-						fileName.endsWith(".svg")
-					) {
+					if (filtreRe.test(entry.name)) {
 						handles.push(entry);
 					}
 				} else if (entry.kind === "directory") {
-					const subHandles = await getFileHandlesFromDirectory(entry);
+					const subHandles = await getFileHandlesFromDirectory(entry, filtreRe);
 					handles = handles.concat(subHandles);
 				}
 			}
@@ -4525,13 +4583,68 @@
 			majResumeMois();
 		}
 
+		// Extensions d'images : liste de référence + choix par l'utilisateur à chaque import
+		const EXTENSIONS_IMAGES = ["jpg", "jpeg", "png", "webp", "gif", "avif", "bmp", "tif", "tiff", "heic", "heif", "svg"];
+		const EXT_RE_DEFAUT = new RegExp(`\\.(?:${EXTENSIONS_IMAGES.join("|")})$`, "i");
+
+		function choisirExtensions() {
+			return new Promise((resolve) => {
+
+				// (Re)construction de la liste : TOUT coché par défaut
+				liste.innerHTML = "";
+				for (const ext of EXTENSIONS_IMAGES) {
+					const label = document.createElement("label");
+					label.className = "ext-choix";
+					const coche = document.createElement("input");
+					coche.type = "checkbox";
+					coche.value = ext;
+					coche.checked = true;
+					label.appendChild(coche);
+					label.appendChild(document.createTextNode(` .${ext}`));
+					liste.appendChild(label);
+				}
+
+				const terminer = (resultat) => {
+					overlay.hidden = true;
+					document.getElementById("extValider").onclick = null;
+					document.getElementById("extTout").onclick = null;
+					extAnnulation.onclick = null;
+					resolve(resultat);
+				};
+
+				document.getElementById("extValider").onclick = () => {
+					const cochees = [...liste.querySelectorAll("input:checked")].map(cb => cb.value);
+					if (cochees.length === 0) {
+						toast("Cochez au moins une extension !", "warning");
+						return;
+					}
+					terminer(cochees);
+				};
+				document.getElementById("extTout").onclick = () => {
+					liste.querySelectorAll("input").forEach(cb => cb.checked = true);
+				};
+				extAnnulation.onclick = () => terminer(null);
+
+				overlay.hidden = false;
+			});
+		}
+
 		async function selectionnerDossierImages( clearLocalStorage = true ) {
 			try {
 				const dirHandle = await window.showDirectoryPicker();
+
+				// Choix des extensions par l'utilisateur (tout coché par défaut)
+				const extensionsChoisies = await choisirExtensions();
+				if (!extensionsChoisies) {
+					infoStatut.textContent = "Sélection de dossier annulée.";
+					return;
+				}
+				const filtreRe = new RegExp(`\\.(?:${extensionsChoisies.join("|")})$`, "i");
+
 				loaderOverlay.classList.remove("cache");
 				infoStatut.textContent = "🔍 Analyse du dossier en cours...";
 				await sauvegarderDossier(dirHandle);
-				const rawHandles = await getFileHandlesFromDirectory(dirHandle);
+				const rawHandles = await getFileHandlesFromDirectory(dirHandle, filtreRe);
 				if (rawHandles.length > 0) {
 					if (clearLocalStorage) {
 						viderLocalStorageProprement();
@@ -4705,28 +4818,35 @@
 		document.addEventListener("dragleave", (e) => { e.preventDefault(); dragCounter--; if (dragCounter <= 0) { dragCounter = 0; document.body.classList.remove("drag-active"); } });
 
 		document.addEventListener("drop", async (e) => {
-			e.preventDefault();
-			dragCounter = 0;
-			document.body.classList.remove("drag-active");
-			loaderOverlay.classList.remove("cache");
-			infoStatut.textContent = "🔍 Analyse du dossier déposé...";
+            e.preventDefault();
+            dragCounter = 0;
+            document.body.classList.remove("drag-active");
 
-			const EXT_RE = /\.(jpe?g|png|webp|gif|avif|bmp|tiff?|heic|heif|svg)$/i;
+            // Lecture SYNCHRONE de la DataTransfer AVANT tout await :
+            // dès qu'on rend la main (boîte d'extensions), items devient inutilisable.
+            const items = e.dataTransfer.items;
+            const handlePromises = [];
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].kind !== "file") continue;
+                handlePromises.push(
+                    items[i].getAsFileSystemHandle
+                        ? items[i].getAsFileSystemHandle()
+                        : Promise.resolve(null)
+                );
+            }
+            const handles = await Promise.all(handlePromises.map(p => p.catch(() => null)));
+
+            // Choix des extensions par l'utilisateur (tout coché par défaut)
+            const extensionsChoisies = await choisirExtensions();
+            if (!extensionsChoisies) {
+                infoStatut.textContent = "Dépôt annulé.";
+                return;
+            }
+            const EXT_RE = new RegExp(`\\.(?:${extensionsChoisies.join("|")})$`, "i");
+            loaderOverlay.classList.remove("cache");
+            infoStatut.textContent = "🔍 Analyse du dossier déposé...";
 
 			try {
-				const items = e.dataTransfer.items;
-				const handlePromises = [];
-				for (let i = 0; i < items.length; i++) {
-					if (items[i].kind !== "file") continue;
-					handlePromises.push(
-						items[i].getAsFileSystemHandle
-							? items[i].getAsFileSystemHandle()
-							: Promise.resolve(null)
-					);
-				}
-
-				const handles = await Promise.all(handlePromises.map(p => p.catch(() => null)));
-
 				let rawHandles = [];
 				let dossierPrincipal = null;
 				for (const handle of handles) {
@@ -4737,7 +4857,7 @@
 							dossierPrincipal = true;
 							await sauvegarderDossier(handle);
 						}
-						const sousHandles = await getFileHandlesFromDirectory(handle);
+						const sousHandles = await getFileHandlesFromDirectory(handle, EXT_RE);
 						rawHandles.push(...sousHandles);
 					}
 
