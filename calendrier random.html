@@ -2671,6 +2671,7 @@
 			<div id="extensionsListe" class="extensions-liste"></div>
 			<div class="confirm-actions">
 				<button id="extTout" type="button">Tout cocher</button>
+				<button id="extRien" type="button">Tout décocher</button>
 				<button id="extValider" type="button">Importer</button>
 			</div>
 		</div>
@@ -4608,6 +4609,7 @@
 					overlay.hidden = true;
 					document.getElementById("extValider").onclick = null;
 					document.getElementById("extTout").onclick = null;
+					document.getElementById("extRien").onclick = null;
 					extAnnulation.onclick = null;
 					resolve(resultat);
 				};
@@ -4623,6 +4625,9 @@
 				document.getElementById("extTout").onclick = () => {
 					liste.querySelectorAll("input").forEach(cb => cb.checked = true);
 				};
+				document.getElementById("extRien").onclick = () => {
+                    liste.querySelectorAll("input").forEach(cb => cb.checked = false);
+                };
 				extAnnulation.onclick = () => terminer(null);
 
 				overlay.hidden = false;
