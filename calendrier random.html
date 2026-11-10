@@ -45,6 +45,7 @@
 		button {
 		  -webkit-user-select: none;
 		  user-select: none;
+		  line-height: 1;
 		}
 
         .-content {
@@ -1125,6 +1126,7 @@
 		}
 
 		.galerie-boite {
+			position: absolute;
 			width: 80vw;
 			width: 80dvw;
 			max-width: 80vw;
@@ -1864,7 +1866,8 @@
 		}
 
 		#extensionsOverlay[hidden] {
-			display: none;
+			opacity: 0;
+			visibility: hidden;
 		}
 
 		.extensions-liste {
@@ -1900,6 +1903,85 @@
 
 		.ext-choix input {
 			accent-color: #2dd4bf;
+		}
+
+		/* ============================================================
+		   VUE ANNUELLE : 12 MINI-CALENDRIERS
+		   ============================================================ */
+		#vueAnneeGrille {
+			overflow-y: auto;
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+			gap: 10px;
+			padding: 4px;
+		}
+
+		.vue-annee-mois {
+			background: rgba(15, 23, 42, 0.5);
+			border: 2px solid rgba(45, 212, 191, 0.3);
+			border-radius: 10px;
+			padding: 8px;
+			cursor: pointer;
+			transition: all 0.2s ease;
+		}
+
+		.vue-annee-mois:hover {
+			border-color: #fbbf24;
+			transform: translateY(-2px);
+		}
+
+		.vue-annee-mois h3 {
+			margin: 0 0 6px 0;
+			font-size: 13px;
+			color: #2dd4bf;
+			font-weight: bold;
+		}
+
+		.vue-annee-grille {
+			display: grid;
+			grid-template-columns: repeat(7, 1fr);
+			gap: 1px;
+		}
+
+		.vue-annee-grille span {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			aspect-ratio: 1;
+			font-size: 10px;
+			border-radius: 3px;
+			color: #e2e8f0;
+		}
+
+		.vue-annee-grille span.entete {
+			color: #94a3b8;
+			font-weight: bold;
+			font-size: 9px;
+		}
+
+		.vue-annee-grille span.vide {
+			visibility: hidden;
+		}
+
+		.vue-annee-grille span.ferie  { color: #c084fc; font-weight: bold; }
+		.vue-annee-grille span.repere { color: #fbbf24; }
+		.vue-annee-grille span.anniv  { background: rgba(147, 51, 234, 0.4); border-radius: 50%; }
+		.vue-annee-grille span.event  { background: rgba(13, 148, 136, 0.4); border-radius: 50%; }
+		.vue-annee-grille span.actuel {
+			background: rgba(21, 103, 57, 0.7);
+			border-radius: 50%;
+			color: #28b96f;
+			font-weight: bold;
+		}
+
+		#vueAnneeOverlay {
+			opacity: 1;
+			visibility: visible;
+		}
+
+		#vueAnneeOverlay[hidden] {
+			opacity: 0;
+			visibility: hidden;
 		}
 
 		.alerte-navigateur {
@@ -2496,6 +2578,7 @@
 					<button id="btnMoisSuiv">Mois suiv. <span class="flecheInfo">›</span></button>
 					<button id="btnAnneeSuiv">Année suiv. <span class="flecheInfo">»</span></button>
 					<input type="month" id="selecteurMoisAnnee" title="Choisir un mois et une année">
+					<button id="btnVueAnnee" type="button" title="Vue annuelle">🗓️ Année</button>
 				</div>
 				<div class="actions-diapo">
 					<button id="btnNotifications" title="Recevoir une notification le lendemain matin pour découvrir l'image du jour">🔔 Notifications : OFF</button>
@@ -2637,6 +2720,7 @@
         <div>🖱️ <strong>Clic droit</strong> sur un jour : date, nom de la photo, 🎂 anniversaire récurrent et 📌 événement ponctuel à gérer.</div>
         <div>📊 La <strong>pastille sous la grille</strong> résume le mois (images, anniversaires, événements) : un clic liste tout, fêtes et repères compris.</div>
         <div>📂 Naviguez entre les mois et les années avec les boutons ou le sélecteur de date.</div>
+		<div>🗓️ Année : vue des 12 mois en miniature.</div>
         <div>🔔 Le bouton <strong>« Notifications »</strong> affiche le rappel du jour (image, anniversaires, événements) à votre prochaine visite.</div>
         <div>💾 Le bouton <strong>« Sauvegarde »</strong> exporte vos attributions d'images, anniversaires et événements dans un fichier daté, ou restaure une sauvegarde précédente.</div>
         <div>📂 Après une restauration sur un nouvel appareil, sélectionnez le même dossier d'images : vos photos se replacent automatiquement sur leurs jours.</div>
@@ -2674,6 +2758,19 @@
 				<button id="extRien" type="button">Tout décocher</button>
 				<button id="extValider" type="button">Importer</button>
 			</div>
+		</div>
+	</div>
+
+	<!-- Vue annuelle : 12 mini-calendriers -->
+	<div id="vueAnneeOverlay" class="twAudessus" hidden>
+		<div id="vueAnneeBoite" class="galerie-boite">
+			<button class="fermer confirmAnnulation" id="vueAnneeFermer" type="button" title="Fermer">❌</button>
+			<div class="galerie-entete confirm-titre actions-mois">
+				<h2 id="vueAnneeTitre">📅 Année</h2>
+				<button id="vueAnneePrec" type="button" title="Année précédente">◀&nbsp;&nbsp;Année préc.</button>
+				<button id="vueAnneeSuiv" type="button" title="Année suivante">Année suiv.&nbsp;&nbsp;▶</button>
+			</div>
+			<div id="vueAnneeGrille"></div>
 		</div>
 	</div>
 
@@ -2739,6 +2836,12 @@
 				extAnnulation.click();
 			}
 
+			if (overlayAnnee.hidden === false &&
+				overlayAnnee.contains(e.target) &&
+				!vueAnneeBoite.contains(e.target)) {
+				fermerVueAnnee();
+			}
+
 			if (!menuContextuel.hidden && !menuContextuel.contains(e.target)) {
 				fermerMenuContextuel();
 			}
@@ -2757,6 +2860,9 @@
 				}
 				if (overlay.hidden === false) {
 					extAnnulation.click();
+				}
+				if (overlayAnnee.hidden === false) {
+					fermerVueAnnee();
 				}
 			}
 		});
@@ -3415,6 +3521,8 @@
 		const liste = document.getElementById("extensionsListe");
 		const extAnnulation = document.getElementById("extAnnulation");
 		const confirmBoiteB = document.getElementById("confirmBoiteB");
+		const overlayAnnee = document.getElementById("vueAnneeOverlay");
+		const vueAnneeBoite = document.getElementById("vueAnneeBoite");
 
 		async function toast(message, type = "info", duree = 5500) {
 			const element = document.createElement("div");
@@ -3904,6 +4012,97 @@
 				confirmToast(`📅 Année ${anneeAffilee}`, lignes.join("\n"), "OK", false);
 			}
 		}
+
+		// ============================================================
+		// VUE ANNUELLE : 12 mini-calendriers cliquables
+		// ============================================================
+		let annee = anneeAffilee
+		function construireVueAnnee() {
+			const aujourdhui = new Date();
+			document.getElementById("vueAnneeTitre").textContent = `📅 Année ${annee}`;
+			const grille = document.getElementById("vueAnneeGrille");
+			grille.innerHTML = "";
+
+			for (let m = 0; m < 12; m++) {
+				const nbJours = new Date(annee, m + 1, 0).getDate();
+				// Même décalage lundi-premier que la grille principale
+				const premierJour = new Date(annee, m, 1);
+				const decalage = (premierJour.getDay() === 0) ? 6 : premierJour.getDay() - 1;
+
+				const carte = document.createElement("div");
+				carte.className = "vue-annee-mois";
+				carte.title = `${moisNoms[m]} ${annee} — clic : afficher ce mois`;
+
+				// Lecture UNE fois par mois (pas de re-parse du localStorage par jour)
+				const anniversaires = getAnniversaires();
+				const evenements = getEvenements();
+
+				let html = `<h3>${moisNoms[m]}</h3><div class="vue-annee-grille">`;
+				for (const jour of joursSemaine) html += `<span class="entete">${jour}</span>`;
+				for (let v = 0; v < decalage; v++) html += `<span class="vide"></span>`;
+				for (let j = 1; j <= nbJours; j++) {
+					const anniv = anniversaires[`${m + 1}-${j}`];
+					const evenmt = evenements[`${annee}-${m + 1}-${j}`];
+					const ferie = trouverJourFerie(annee, m, j);
+					// Cumul fidèle à la logique v79 : férié ET repère possibles le même jour,
+					// mais un chiffre n'a qu'une couleur de texte → priorité au férié (violet)
+					const repere = !ferie && trouverJoursReperes(annee, m, j);
+					const actuel = j === aujourdhui.getDate() && m === aujourdhui.getMonth() && annee === aujourdhui.getFullYear();
+					let cls = "jour";
+					if (ferie) cls += " ferie";
+					if (repere) cls += " repere";
+					if (anniv) cls += " anniv";
+					if (evenmt) cls += " event";
+					if (actuel) cls += " actuel";
+					html += `<span class="${cls}" data-mois="${m}" data-jour="${j}">${j}</span>`;
+				}
+				html += `</div>`;
+				carte.innerHTML = html;
+
+				carte.addEventListener("click", (e) => {
+					const cellule = e.target.closest("span[data-jour]");
+					if (cellule) {
+						moisAffiche = Number(cellule.dataset.mois);
+						anneeAffilee = annee
+					} else {
+						// Clic ailleurs sur la carte : le mois seul
+						moisAffiche = m;
+						anneeAffilee = annee 
+					}
+					fermerVueAnnee();
+					construireGrilleCalendrier();
+					if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
+						traiterDossierImages(window.derniersHandlesCharges, false);
+					}
+				});
+
+				grille.appendChild(carte);
+			}
+		}
+
+		function ouvrirVueAnnee() {
+			annee = anneeAffilee
+			masquerRaccourcis();
+			construireVueAnnee();
+			document.body.style.overflowY = "hidden";
+			overlayAnnee.hidden = false;
+		}
+
+		function fermerVueAnnee() {
+			masquerRaccourcis();
+			overlayAnnee.hidden = true;
+			document.body.style.overflowY = "auto";
+			overlayAnnee.addEventListener("transitionend", function focusChamp(e) {
+				if (e.propertyName !== "opacity") return;
+				overlayAnnee.removeEventListener("transitionend", focusChamp);
+				document.getElementById("vueAnneeGrille").innerHTML = "";
+			});
+		}
+
+		document.getElementById("btnVueAnnee").addEventListener("click", ouvrirVueAnnee);
+		document.getElementById("vueAnneeFermer").addEventListener("click", fermerVueAnnee);
+		document.getElementById("vueAnneePrec").addEventListener("click", () => { annee--; construireVueAnnee(); });
+		document.getElementById("vueAnneeSuiv").addEventListener("click", () => { annee++; construireVueAnnee(); });
 
 		document.getElementById("resumeMois").addEventListener("click", async () => {
 			const anniversaires = getAnniversaires();
