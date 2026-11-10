@@ -3946,6 +3946,8 @@
 		let titre = "Mon Calendrier";
 		const CLE_DERNIERE_SAUVEGARDE = "calendrier_derniere_sauvegarde";
 
+		let estMasque = false;
+
 		function construireGrilleCalendrier() {
 			const dateCible = new Date(anneeAffilee, moisAffiche, 1);
 			const optionsDate = { year: 'numeric', month: 'long' };
@@ -4109,6 +4111,11 @@
 				li.appendChild(a);
 				adventDoors.appendChild(li);
 			}
+			btnToggleOpacite.textContent = estMasque ? "👁️ Afficher les jours" : "👁️ Masquer les jours";
+			adventDoors.querySelectorAll("li").forEach(li => {
+				li.style.opacity = estMasque ? "0" : "";
+				li.style.pointerEvents= estMasque ? "none" : "";
+			});
 			window.location.hash = "#adventDoors";
 			history.replaceState(null, "", location.pathname + location.search);
 
@@ -4796,12 +4803,12 @@
 			document.querySelector(".-content").style.display = estMasqueCalendar ? "none" : "";
 		});
 
-		let estMasque = false;
 		btnToggleOpacite.addEventListener("click", () => {
 			estMasque = !estMasque;
 			btnToggleOpacite.textContent = estMasque ? "👁️ Afficher les jours" : "👁️ Masquer les jours";
 			adventDoors.querySelectorAll("li").forEach(li => {
 				li.style.opacity = estMasque ? "0" : "";
+				li.style.pointerEvents = estMasque ? "none" : "";
 			});
 		});
 
