@@ -8,7 +8,7 @@
     "start_url": "./calendrier random.html",
     "scope": "./",
     "display": "standalone",
-    "launch_handler": { "client_mode": "focus-existing" },
+    "launch_handler": { "client_mode": "navigate-existing" },
     "background_color": "#24283a",
     "theme_color": "#24283a",
     "developer": { "name": "Éric Rousseau" },
@@ -30,8 +30,8 @@
 	"shortcuts": [
 		{
 			"name": "Aujourd'hui",
-			"url": "./calendrier random.html",
-			"description": "Aller à aujourd'hui",
+			"url": "./calendrier random.html?imageDuJour=1",
+			"description": "Ouvrir directement l'image du jour",
 			"icons": [
 				{
 					"src": "calendrier-96.png",

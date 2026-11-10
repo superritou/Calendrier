@@ -6159,51 +6159,58 @@
 			distancePinch = 0;
 		});
 
-		(async function chargerDossierAuDemarrage() {
-			try {
-				infoStatut.textContent = "🔄 Recherche du cache précédent...";
-				try {
-					const imagesCache = await recupererImagesCache();
-					if (imagesCache && imagesCache.length > 0) {
-						infoStatut.textContent = `🔄 Chargement du cache... (${imagesCache.length} images)`;
-						await traiterDossierImages(imagesCache, false);
-						return
-					}
-				} catch (cacheError) {
-					console.error("Erreur lors du chargement du cache :", cacheError);
-				}
+        (async function chargerDossierAuDemarrage() {
+            try {
+                infoStatut.textContent = "🔄 Recherche du cache précédent...";
+                try {
+                    const imagesCache = await recupererImagesCache();
+                    if (imagesCache && imagesCache.length > 0) {
+                        infoStatut.textContent = `🔄 Chargement du cache... (${imagesCache.length} images)`;
+                        await traiterDossierImages(imagesCache, false);
+                        return;
+                    }
+                } catch (cacheError) {
+                    console.error("Erreur lors du chargement du cache :", cacheError);
+                }
 
-				infoStatut.textContent = "🔄 Recherche du dossier précédent...";
-				const dirHandle = await recupererDossier();
-				if (!dirHandle || typeof dirHandle.queryPermission !== "function") {
-					infoStatut.textContent = "Veuillez sélectionner votre dossier d'images.";
-					loaderOverlay.classList.add("cache");
-					return;
-				}
+                infoStatut.textContent = "🔄 Recherche du dossier précédent...";
+                const dirHandle = await recupererDossier();
+                if (!dirHandle || typeof dirHandle.queryPermission !== "function") {
+                    infoStatut.textContent = "Veuillez sélectionner votre dossier d'images.";
+                    loaderOverlay.classList.add("cache");
+                    return;
+                }
 
-				const permission = await dirHandle.queryPermission({ mode: "read" });
+                const permission = await dirHandle.queryPermission({ mode: "read" });
 
-				if (permission === "granted") {
-					infoStatut.textContent = "🔍 Analyse du dossier en cours...";
-					const rawHandles = await getFileHandlesFromDirectory(dirHandle);
+                if (permission === "granted") {
+                    infoStatut.textContent = "🔍 Analyse du dossier en cours...";
+                    const rawHandles = await getFileHandlesFromDirectory(dirHandle);
 
-					if (rawHandles && rawHandles.length > 0) {
-						await traiterDossierImages(rawHandles, true);
-						return;
-					}
-					infoStatut.textContent = "Aucune image trouvée dans le dossier.";
-					loaderOverlay.classList.add("cache");
-					await effacerDossier();
-					return;
-				} else {
-					infoStatut.textContent = `Le dossier "${dirHandle.name}" enregistré demande une nouvelle autorisation : veuillez le sélectionner à nouveau.`;
-					loaderOverlay.classList.add("cache");
-				}
-			} catch (err) {
-				loaderOverlay.classList.add("cache");
-				console.error("Erreur lors du chargement automatique :", err);
-			}
-		})();
+                    if (rawHandles && rawHandles.length > 0) {
+                        await traiterDossierImages(rawHandles, true);
+                        return;
+                    }
+                    infoStatut.textContent = "Aucune image trouvée dans le dossier.";
+                    loaderOverlay.classList.add("cache");
+                    await effacerDossier();
+                    return;
+                } else {
+                    infoStatut.textContent = `Le dossier "${dirHandle.name}" enregistré demande une nouvelle autorisation : veuillez le sélectionner à nouveau.`;
+                    loaderOverlay.classList.add("cache");
+                }
+            } catch (err) {
+                loaderOverlay.classList.add("cache");
+                console.error("Erreur lors du chargement automatique :", err);
+            }
+        })().finally(() => {
+            // Raccourci « Aujourd'hui » (icône de l'app) : ouvrir l'image du jour
+            const paramsRaccourci = new URLSearchParams(location.search);
+            if (paramsRaccourci.get("imageDuJour") === "1") {
+                history.replaceState(null, "", location.pathname); // retire le paramètre (pas de mémorisation)
+                afficherImageJour(new Date().getDate());
+            }
+        });
 
 		function convertirImagesEnBackground() {
 			const images = adventDoors.querySelectorAll("li a img");
