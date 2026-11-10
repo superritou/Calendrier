@@ -1939,9 +1939,21 @@
 
 		.vue-annee-grille {
 			display: grid;
-			grid-template-columns: repeat(7, 1fr);
-			gap: 1px;
+			grid-template-columns: minmax(14px, 0.6fr) repeat(7, 1fr);
+			gap: 3px;
 		}
+
+		.vue-annee-grille span.semaine {
+            color: #2dd4bf;
+            font-weight: bold;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(15, 23, 42, 0.4);
+            border-radius: 3px;
+			aspect-ratio: auto;
+        }
 
 		.vue-annee-grille span {
 			display: flex;
@@ -1956,7 +1968,7 @@
 		.vue-annee-grille span.entete {
 			color: #94a3b8;
 			font-weight: bold;
-			font-size: 9px;
+			font-size: 10px;
 		}
 
 		.vue-annee-grille span.vide {
@@ -4017,68 +4029,75 @@
 		// VUE ANNUELLE : 12 mini-calendriers cliquables
 		// ============================================================
 		let annee = anneeAffilee
-		function construireVueAnnee() {
-			const aujourdhui = new Date();
-			document.getElementById("vueAnneeTitre").textContent = `📅 Année ${annee}`;
-			const grille = document.getElementById("vueAnneeGrille");
-			grille.innerHTML = "";
+        function construireVueAnnee() {
+            const aujourdhui = new Date();
+            document.getElementById("vueAnneeTitre").textContent = `📅 Année ${annee}`;
+            const grille = document.getElementById("vueAnneeGrille");
+            grille.innerHTML = "";
 
-			for (let m = 0; m < 12; m++) {
-				const nbJours = new Date(annee, m + 1, 0).getDate();
-				// Même décalage lundi-premier que la grille principale
-				const premierJour = new Date(annee, m, 1);
-				const decalage = (premierJour.getDay() === 0) ? 6 : premierJour.getDay() - 1;
+            for (let m = 0; m < 12; m++) {
+                const nbJours = new Date(annee, m + 1, 0).getDate();
+                // Même décalage lundi-premier que la grille principale
+                const premierJour = new Date(annee, m, 1);
+                const decalage = (premierJour.getDay() === 0) ? 6 : premierJour.getDay() - 1;
 
-				const carte = document.createElement("div");
-				carte.className = "vue-annee-mois";
-				carte.title = `${moisNoms[m]} ${annee} — clic : afficher ce mois`;
+                const carte = document.createElement("div");
+                carte.className = "vue-annee-mois";
+                carte.title = `${moisNoms[m]} ${annee} — clic : afficher ce mois`;
 
-				// Lecture UNE fois par mois (pas de re-parse du localStorage par jour)
-				const anniversaires = getAnniversaires();
-				const evenements = getEvenements();
+                // Lecture UNE fois par mois (pas de re-parse du localStorage par jour)
+                const anniversaires = getAnniversaires();
+                const evenements = getEvenements();
 
-				let html = `<h3>${moisNoms[m]}</h3><div class="vue-annee-grille">`;
-				for (const jour of joursSemaine) html += `<span class="entete">${jour}</span>`;
-				for (let v = 0; v < decalage; v++) html += `<span class="vide"></span>`;
-				for (let j = 1; j <= nbJours; j++) {
-					const anniv = anniversaires[`${m + 1}-${j}`];
-					const evenmt = evenements[`${annee}-${m + 1}-${j}`];
-					const ferie = trouverJourFerie(annee, m, j);
-					// Cumul fidèle à la logique v79 : férié ET repère possibles le même jour,
-					// mais un chiffre n'a qu'une couleur de texte → priorité au férié (violet)
-					const repere = !ferie && trouverJoursReperes(annee, m, j);
-					const actuel = j === aujourdhui.getDate() && m === aujourdhui.getMonth() && annee === aujourdhui.getFullYear();
-					let cls = "jour";
-					if (ferie) cls += " ferie";
-					if (repere) cls += " repere";
-					if (anniv) cls += " anniv";
-					if (evenmt) cls += " event";
-					if (actuel) cls += " actuel";
-					html += `<span class="${cls}" data-mois="${m}" data-jour="${j}">${j}</span>`;
-				}
-				html += `</div>`;
-				carte.innerHTML = html;
+                let html = `<h3>${moisNoms[m]}</h3><div class="vue-annee-grille">`;
+                html += `<span class="vide"></span>`; // angle au-dessus des numéros de semaine
+                for (const jour of joursSemaine) html += `<span class="entete">${jour}</span>`;
+                // Numéro de la première semaine (partielle ou non)
+                html += `<span class="semaine">S${getNumeroSemaine(new Date(annee, m, 1))}</span>`;
+                for (let v = 0; v < decalage; v++) html += `<span class="vide"></span>`;
+                for (let j = 1; j <= nbJours; j++) {
+                    const anniv = anniversaires[`${m + 1}-${j}`];
+                    const evenmt = evenements[`${annee}-${m + 1}-${j}`];
+                    const ferie = trouverJourFerie(annee, m, j);
+                    // Cumul fidèle à la logique v79 : férié ET repère possibles le même jour,
+                    // mais un chiffre n'a qu'une couleur de texte → priorité au férié (violet)
+                    const repere = !ferie && trouverJoursReperes(annee, m, j);
+                    const actuel = j === aujourdhui.getDate() && m === aujourdhui.getMonth() && annee === aujourdhui.getFullYear();
+                    let cls = "jour";
+                    if (ferie) cls += " ferie";
+                    if (repere) cls += " repere";
+                    if (anniv) cls += " anniv";
+                    if (evenmt) cls += " event";
+                    if (actuel) cls += " actuel";
+                    html += `<span class="${cls}" data-mois="${m}" data-jour="${j}">${j}</span>`;
+                    // Après un dimanche (sauf dernier jour du mois) : numéro de la semaine suivante
+                    if (new Date(annee, m, j).getDay() === 0 && j !== nbJours) {
+                        html += `<span class="semaine">S${getNumeroSemaine(new Date(annee, m, j + 1))}</span>`;
+                    }
+                }
+                html += `</div>`;
+                carte.innerHTML = html;
 
-				carte.addEventListener("click", (e) => {
-					const cellule = e.target.closest("span[data-jour]");
-					if (cellule) {
-						moisAffiche = Number(cellule.dataset.mois);
-						anneeAffilee = annee
-					} else {
-						// Clic ailleurs sur la carte : le mois seul
-						moisAffiche = m;
-						anneeAffilee = annee 
-					}
-					fermerVueAnnee();
-					construireGrilleCalendrier();
-					if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
-						traiterDossierImages(window.derniersHandlesCharges, false);
-					}
-				});
+                carte.addEventListener("click", (e) => {
+                    const cellule = e.target.closest("span[data-jour]");
+                    if (cellule) {
+                        moisAffiche = Number(cellule.dataset.mois);
+                        anneeAffilee = annee
+                    } else {
+                        // Clic ailleurs sur la carte : le mois seul
+                        moisAffiche = m;
+                        anneeAffilee = annee 
+                    }
+                    fermerVueAnnee();
+                    construireGrilleCalendrier();
+                    if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
+                        traiterDossierImages(window.derniersHandlesCharges, false);
+                    }
+                });
 
-				grille.appendChild(carte);
-			}
-		}
+                grille.appendChild(carte);
+            }
+        }
 
 		function ouvrirVueAnnee() {
 			annee = anneeAffilee
