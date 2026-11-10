@@ -4114,7 +4114,7 @@
 			btnToggleOpacite.textContent = estMasque ? "👁️ Afficher les jours" : "👁️ Masquer les jours";
 			adventDoors.querySelectorAll("li").forEach(li => {
 				li.style.opacity = estMasque ? "0" : "";
-				li.style.pointerEvents= estMasque ? "none" : "";
+				li.style.pointerEvents = estMasque ? "none" : "";
 			});
 			window.location.hash = "#adventDoors";
 			history.replaceState(null, "", location.pathname + location.search);
