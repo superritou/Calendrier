@@ -6268,7 +6268,7 @@
 			galerieOverlay.classList.remove("visible");
 			panneauRaccourcisGalerie.classList.remove("visible");
 			galerieOverlay.addEventListener("transitionend", function focusChamp(e) {
-				if (e.propertyName !== "opacity" || galerieOverlay.classList.contain("visible")) return;
+				if (e.propertyName !== "opacity" || galerieOverlay.classList.contains("visible")) return;
 				galerieOverlay.removeEventListener("transitionend", focusChamp);
 				galerieGrille.innerHTML = "";
 				apercuImage.removeAttribute("src");
@@ -6505,7 +6505,7 @@
             galerieApercu.classList.remove("visible");
             panneauRaccourcisApercu.classList.remove("visible");
 			galerieApercu.addEventListener("transitionend", function focusChamp(e) {
-				if (e.propertyName !== "opacity" || galerieApercu.classList.contain("visible")) return;
+				if (e.propertyName !== "opacity" || galerieApercu.classList.contains("visible")) return;
 				galerieApercu.removeEventListener("transitionend", focusChamp);
 				apercuImage.src = "";
 			});
