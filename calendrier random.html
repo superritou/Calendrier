@@ -4093,7 +4093,7 @@
 			overlayAnnee.hidden = true;
 			document.body.style.overflowY = "auto";
 			overlayAnnee.addEventListener("transitionend", function focusChamp(e) {
-				if (e.propertyName !== "opacity") return;
+				if (e.propertyName !== "opacity" || overlayAnnee.hidden === false) return;
 				overlayAnnee.removeEventListener("transitionend", focusChamp);
 				document.getElementById("vueAnneeGrille").innerHTML = "";
 			});
@@ -6268,7 +6268,7 @@
 			galerieOverlay.classList.remove("visible");
 			panneauRaccourcisGalerie.classList.remove("visible");
 			galerieOverlay.addEventListener("transitionend", function focusChamp(e) {
-				if (e.propertyName !== "opacity") return;
+				if (e.propertyName !== "opacity" || galerieOverlay.classList.contain("visible")) return;
 				galerieOverlay.removeEventListener("transitionend", focusChamp);
 				galerieGrille.innerHTML = "";
 				apercuImage.removeAttribute("src");
@@ -6505,7 +6505,7 @@
             galerieApercu.classList.remove("visible");
             panneauRaccourcisApercu.classList.remove("visible");
 			galerieApercu.addEventListener("transitionend", function focusChamp(e) {
-				if (e.propertyName !== "opacity") return;
+				if (e.propertyName !== "opacity" || galerieApercu.classList.contain("visible")) return;
 				galerieApercu.removeEventListener("transitionend", focusChamp);
 				apercuImage.src = "";
 			});
