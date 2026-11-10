@@ -39,7 +39,19 @@
 					"type": "image/png"
 				}
 			]
-		}
+		},
+        {
+            "name": "Année",
+            "url": "./calendrier random.html?vueAnnee=1",
+            "description": "Ouvrir directement la vue annuelle",
+            "icons": [
+                {
+                    "src": "calendrier-96.png",
+                    "sizes": "96x96",
+                    "type": "image/png"
+                }
+            ]
+        }
 	],
     "protocol_handlers": [
         {

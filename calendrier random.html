@@ -6210,6 +6210,11 @@
                 history.replaceState(null, "", location.pathname); // retire le paramètre (pas de mémorisation)
                 afficherImageJour(new Date().getDate());
             }
+            // Raccourci « Année » (icône de l'app) : ouvrir la vue annuelle
+            if (paramsRaccourci.get("vueAnnee") === "1") {
+                history.replaceState(null, "", location.pathname); // retire le paramètre (pas de mémorisation)
+                ouvrirVueAnnee();
+            }
         });
 
 		function convertirImagesEnBackground() {
