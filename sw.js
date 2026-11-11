@@ -154,3 +154,24 @@ self.addEventListener("fetch", event => {
         })()
     );
 });
+
+// Clic sur une notification : ouvrir l'app directement sur l'image du jour
+self.addEventListener("notificationclick", (event) => {
+    event.notification.close();
+    event.waitUntil(
+        (async () => {
+            const liste = await clients.matchAll({ type: "window", includeUncontrolled: true });
+
+            // App déjà ouverte : mise au premier plan + relance sur l'image du jour
+            if (liste.length > 0) {
+                const client = liste[0];
+                if ("focus" in client) client.focus();
+                if ("navigate" in client) return client.navigate(`${PAGE_PRINCIPALE}?imageDuJour=1`);
+                return;
+            }
+
+            // App fermée : démarrage direct sur l'image du jour
+            return clients.openWindow(`${PAGE_PRINCIPALE}?imageDuJour=1`);
+        })()
+    );
+});

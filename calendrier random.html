@@ -3167,10 +3167,16 @@
 				navigator.serviceWorker.ready
 					.then(registration => registration.showNotification(titre, options))
 					.catch(() => {
-						try { new Notification(titre, options); } catch (e) {}
+						try {
+                            const notif = new Notification(titre, options);
+                            notif.onclick = () => { window.focus(); afficherImageJour(new Date().getDate()); notif.close(); };
+                        } catch (e) {}
 					});
 			} else {
-				try { new Notification(titre, options); } catch (e) {}
+				try {
+                    const notif = new Notification(titre, options);
+                    notif.onclick = () => { window.focus(); afficherImageJour(new Date().getDate()); notif.close(); };
+                } catch (e) {}
 			}
 		}
 
