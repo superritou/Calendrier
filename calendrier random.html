@@ -4789,7 +4789,8 @@
 			// INITIALISATION DES NOTIFICATIONS
 			// (à la fin du script : moisNoms est maintenant déclaré)
 			// ============================================================
-			if (notifsActivees() && "Notification" in window && Notification.permission === "granted") {
+			const liensnow = adventDoors.querySelector("li a.jour-actuel") !== null;
+			if (liensnow && notifsActivees() && "Notification" in window && Notification.permission === "granted") {
 				// planifierNotification();
 
 				// Rattrapage : si l'heure de notification du jour est déjà
