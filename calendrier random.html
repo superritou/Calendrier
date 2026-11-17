@@ -4301,45 +4301,57 @@
 
         // Récapitulatif MENSUEL navigable (clic pastille sous la grille)
         async function afficherInfoMois() {
-			const anniversaires = getAnniversaires();
-			const evenements = getEvenements();
+            const anniversaires = getAnniversaires();
+            const evenements = getEvenements();
             const nbJours = new Date(annee, mois + 1, 0).getDate();
-			const lignes = [];
+            const lignes = [];
             for (let i = 1; i <= nbJours; i++) {
-				const jourFormate = String(i).padStart(2, "0");
+                const jourFormate = String(i).padStart(2, "0");
                 const nomJour = joursNoms[new Date(annee, mois, i).getDay()];
                 const anniv = anniversaires[`${mois + 1}-${i}`];
-				if (anniv) lignes.push(`${nomJour} ${jourFormate} — 🎂 ${anniv}`);
+                if (anniv) lignes.push(`<div class="ligne-annee">${nomJour} ${jourFormate} — 🎂 ${anniv}</div>`);
                 const evt = evenements[`${annee}-${mois + 1}-${i}`];
-				if (evt) lignes.push(`${nomJour} ${jourFormate} — 📌 ${evt}`);
-				// Férié ou repère du jour (même priorité que la grille : le férié prime)
+                if (evt) lignes.push(`<div class="ligne-annee">${nomJour} ${jourFormate} — 📌 ${evt}</div>`);
+                // Férié ou repère du jour (même priorité que la grille : le férié prime)
                 const ferieMois = trouverJourFerie(annee, mois, i);
                 const repereMois = trouverJoursReperes(annee, mois, i);
-				if (ferieMois) {
-					lignes.push(`${nomJour} ${jourFormate} — <span style="color:#c084fc;font-weight:bold;">🎉 ${ferieMois}</span>`);
-				}
-				if (repereMois) {
-					lignes.push(`${nomJour} ${jourFormate} — <span style="color:#fbbf24;font-weight:bold;">✨ ${repereMois}</span>`);
-				}
-			}
+                if (ferieMois) {
+                    lignes.push(`<div class="ligne-annee">${nomJour} ${jourFormate} — <span style="color:#c084fc;font-weight:bold;">🎉 ${ferieMois}</span></div>`);
+                }
+                if (repereMois) {
+                    lignes.push(`<div class="ligne-annee">${nomJour} ${jourFormate} — <span style="color:#fbbf24;font-weight:bold;">✨ ${repereMois}</span></div>`);
+                }
+            }
             const nav = `<div class="nav-annee">`
                 + `<button type="button" id="moisNavMoins" title="Mois précédent">◀</button>`
-				+ `📅 ${moisNoms[mois]} ${annee}`
+                + `📅 ${moisNoms[mois]} ${annee}`
                 + `<button type="button" id="moisNavPlus" title="Mois suivant">▶</button>`
                 + `</div>`;
             const promesse = lignes.length === 0
                 ? confirmToast(nav, "Aucun anniversaire, événement, fête ni repère ce mois-ci.", "OK", "📅 Info année")
-                : confirmToast(nav, lignes.join("\n"), "OK", "📅 Info année");
+                : confirmToast(nav, lignes.join(""), "OK", "📅 Info année"); // join("") PAS join("\n")
             // Listeners attachés avant l'await : la navigation re-rend la boîte
             document.getElementById("moisNavMoins").addEventListener("click", () => {
                 mois--;
                 if (mois < 0) { mois = 11; annee--; }
                 afficherInfoMois();
-		});
+            });
             document.getElementById("moisNavPlus").addEventListener("click", () => {
                 mois++;
                 if (mois > 11) { mois = 0; annee++; }
                 afficherInfoMois();
+            });
+            // Clic sur une ligne : naviguer vers ce mois dans la grille
+            confirmMessage.querySelectorAll(".ligne-annee").forEach(l => {
+                l.addEventListener("click", async () => {
+                    confirmValider.click(); // ferme le confirmToast
+                    anneeAffilee = annee; // le mois/année navigués deviennent ceux de la grille
+                    moisAffiche = mois;
+                    construireGrilleCalendrier();
+                    if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
+                        await traiterDossierImages(window.derniersHandlesCharges, false);
+                    }
+                });
             });
             const versAnnee = await promesse;
             if (versAnnee === false) listerAnnee(); // liste l'année naviguée (annee)
