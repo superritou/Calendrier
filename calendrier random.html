@@ -4115,7 +4115,13 @@
                 confirmToast( nav, "Aucun anniversaire, événement, fête ni repère cette année.", "OK", false);
                 attacherNav();
             } else {
-                const pill = (filtre, emoji, total) => total ? `<label class="ext-choix"><input type="checkbox" data-filtre="${filtre}" checked>${emoji} ${total}</label>` : "";
+                // États de session des filtres (non persistant : vidé à la fermeture)
+                const etats = JSON.parse(sessionStorage.getItem("filtresAnnee") || "null") || {};
+                const pill = (filtre, emoji, total) => {
+                    if (!total) return "";
+                    const coche = filtre in etats ? etats[filtre] : true;
+                    return `<label class="ext-choix"><input type="checkbox" data-filtre="${filtre}"${coche ? " checked" : ""}>${emoji} ${total}</label>`;
+                };
                 const pills = `<div class="filtres-annee">`
                     + pill("filtre-anniv", "🎂", nbAnniv)
                     + pill("filtre-event", "📌", nbEvent)
@@ -4172,7 +4178,12 @@
                 };
                 document.getElementById("rechercheAnnee").addEventListener("input", majAffichage);
                 confirmMessage.querySelectorAll(".filtres-annee input").forEach(cb => {
-                    cb.addEventListener("change", majAffichage);
+                    cb.addEventListener("change", () => {
+                        const etats = {};
+                        confirmMessage.querySelectorAll(".filtres-annee input").forEach(c => etats[c.dataset.filtre] = c.checked);
+                        sessionStorage.setItem("filtresAnnee", JSON.stringify(etats));
+                        majAffichage();
+                    });
                 });
 				majAffichage();
 				confirmMessage.querySelectorAll(".ligne-annee").forEach(l => {
