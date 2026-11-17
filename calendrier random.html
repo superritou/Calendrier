@@ -1863,6 +1863,75 @@
             width: 40px;
 		}
 
+        /* Navigation année/mois dans les boîtes Info année et Info mois */
+        .nav-annee {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .nav-annee button {
+            background: #0d9488;
+            color: #fff;
+            border: 2px ridge #2dd4bf;
+            border-radius: 8px;
+            padding: 4px 12px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .nav-annee button:hover {
+            background: #14b8a6;
+        }
+
+        /* Filtres par catégorie dans la liste « Info année » */
+        .filtres-annee {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 14px;
+        }
+
+        .filtres-annee .ext-choix {
+            padding: 4px 10px;
+            font-size: 13px;
+        }
+
+        .ligne-annee {
+            text-align: left;
+			cursor: pointer;
+        }
+
+		.ligne-annee:hover {
+            color: #fbbf24;
+        }
+
+        .separateur-annee {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #94a3b8;
+            font-size: 12px;
+            font-weight: bold;
+            margin: 10px 0 4px 0;
+        }
+
+        .separateur-annee::before,
+        .separateur-annee::after {
+            content: "";
+            flex: 1;
+            border-top: 2px solid rgba(255, 255, 255, 0.60);
+        }
+
+        .aucun-resultat {
+            color: #94a3b8;
+            font-style: italic;
+            text-align: center;
+        }
+
 		/* Choix des extensions d'images à l'import */
 		#extensionsOverlay {
 			opacity: 1;
@@ -2782,8 +2851,8 @@
 		<div id="vueAnneeBoite" class="galerie-boite">
 			<button class="fermer confirmAnnulation" id="vueAnneeFermer" type="button" title="Fermer">❌</button>
 			<div class="galerie-entete confirm-titre actions-mois">
-				<h2 id="vueAnneeTitre">📅 Année</h2>
 				<button id="vueAnneePrec" type="button" title="Année précédente">◀&nbsp;&nbsp;Année préc.</button>
+				<h2 id="vueAnneeTitre">📅 Année</h2>
 				<button id="vueAnneeSuiv" type="button" title="Année suivante">Année suiv.&nbsp;&nbsp;▶</button>
 			</div>
 			<div id="vueAnneeGrille"></div>
@@ -4009,36 +4078,120 @@
 		}
 
 		// Récapitulatif ANNUEL : accessible via le bouton « 📅 Année » du popup du mois
-		function listerAnnee() {
-			const anniversaires = getAnniversaires();
-			const evenements = getEvenements();
-			const lignes = [];
-			for (let m = 0; m < 12; m++) {
-				const nbJoursMoisAnnee = new Date(anneeAffilee, m + 1, 0).getDate();
-				for (let j = 1; j <= nbJoursMoisAnnee; j++) {
-					const jourFormate = String(j).padStart(2, "0");
-					const nomJour = joursNoms[new Date(anneeAffilee, m, j).getDay()];
-					const anniv = anniversaires[`${m + 1}-${j}`];
-					if (anniv) lignes.push(`${nomJour} ${jourFormate} ${moisNoms[m]} — 🎂 ${anniv}`);
-					const evt = evenements[`${anneeAffilee}-${m + 1}-${j}`];
-					if (evt) lignes.push(`${nomJour} ${jourFormate} ${moisNoms[m]} — 📌 ${evt}`);
-					const ferieAnnee = trouverJourFerie(anneeAffilee, m, j);
-					const repereAnnee = trouverJoursReperes(anneeAffilee, m, j);
-					if (ferieAnnee) lignes.push(`${nomJour} ${jourFormate} ${moisNoms[m]} — <span style="color:#c084fc;font-weight:bold;">🎉 ${ferieAnnee}</span>`);
-					if (repereAnnee) lignes.push(`${nomJour} ${jourFormate} ${moisNoms[m]} — <span style="color:#fbbf24;font-weight:bold;">✨ ${repereAnnee}</span>`);
-				}
-			}
-			if (lignes.length === 0) {
-				confirmToast(`📅 Année ${anneeAffilee}`, "Aucun anniversaire, événement, fête ni repère cette année.", "OK", false);
-			} else {
-				confirmToast(`📅 Année ${anneeAffilee}`, lignes.join("\n"), "OK", false);
-			}
-		}
+		let annee = anneeAffilee;
+		let mois = 0;
+        // Récapitulatif ANNUEL : accessible via le bouton « 📅 Année » du popup du mois
+        function listerAnnee() {
+            const anniversaires = getAnniversaires();
+            const evenements = getEvenements();
+            const lignes = [];
+            let nbAnniv = 0, nbEvent = 0, nbFerie = 0, nbRepere = 0;
+            for (let m = 0; m < 12; m++) {
+				lignes.push(`<div class="separateur-annee">${moisNoms[m]}</div>`);
+                const nbJoursMoisAnnee = new Date(annee, m + 1, 0).getDate();
+                for (let j = 1; j <= nbJoursMoisAnnee; j++) {
+                    const jourFormate = String(j).padStart(2, "0");
+                    const nomJour = joursNoms[new Date(annee, m, j).getDay()];
+                    const anniv = anniversaires[`${m + 1}-${j}`];
+                    if (anniv) { nbAnniv++; lignes.push(`<div class="ligne-annee filtre-anniv" data-mois="${m}">${nomJour} ${jourFormate} ${moisNoms[m]} — 🎂 ${anniv}</div>`); }
+                    const evt = evenements[`${annee}-${m + 1}-${j}`];
+                    if (evt) { nbEvent++; lignes.push(`<div class="ligne-annee filtre-event" data-mois="${m}">${nomJour} ${jourFormate} ${moisNoms[m]} — 📌 ${evt}</div>`); }
+                    const ferieAnnee = trouverJourFerie(annee, m, j);
+                    const repereAnnee = trouverJoursReperes(annee, m, j);
+                    if (ferieAnnee) { nbFerie++; lignes.push(`<div class="ligne-annee filtre-ferie" data-mois="${m}">${nomJour} ${jourFormate} ${moisNoms[m]} — <span style="color:#c084fc;font-weight:bold;">🎉 ${ferieAnnee}</span></div>`); }
+                    if (repereAnnee) { nbRepere++; lignes.push(`<div class="ligne-annee filtre-repere" data-mois="${m}">${nomJour} ${jourFormate} ${moisNoms[m]} — <span style="color:#fbbf24;font-weight:bold;">✨ ${repereAnnee}</span></div>`); }
+                }
+            }
+            const nav = `<div class="nav-annee">`
+                + `<button type="button" id="anneeNavMoins" title="Année précédente">◀</button>`
+				+ `📅 Année ${annee}`
+                + `<button type="button" id="anneeNavPlus" title="Année suivante">▶</button>`
+                + `</div>`;
+            const attacherNav = () => {
+                document.getElementById("anneeNavMoins").addEventListener("click", () => { annee--; listerAnnee(); });
+                document.getElementById("anneeNavPlus").addEventListener("click", () => { annee++; listerAnnee(); });
+            };
+            if (nbAnniv + nbEvent + nbFerie + nbRepere === 0) {
+                confirmToast( nav, "Aucun anniversaire, événement, fête ni repère cette année.", "OK", false);
+                attacherNav();
+            } else {
+                const pill = (filtre, emoji, total) => total ? `<label class="ext-choix"><input type="checkbox" data-filtre="${filtre}" checked>${emoji} ${total}</label>` : "";
+                const pills = `<div class="filtres-annee">`
+                    + pill("filtre-anniv", "🎂", nbAnniv)
+                    + pill("filtre-event", "📌", nbEvent)
+                    + pill("filtre-ferie", "🎉", nbFerie)
+                    + pill("filtre-repere", "✨", nbRepere)
+                    + `</div>`
+                    + `<input type="search" id="rechercheAnnee" class="confirm-saisie" placeholder="🔎 Rechercher…">`;
+                confirmToast(nav, pills + lignes.join(""), "OK", false);
+                attacherNav();
+
+                // Recherche insensible à la casse ET aux accents
+                const sansAccents = s => s.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
+
+                const majAffichage = () => {
+                    const q = sansAccents(document.getElementById("rechercheAnnee").value).trim();
+                    const elements = [...confirmMessage.querySelectorAll(".ligne-annee, .separateur-annee")];
+
+                    // 1) Lignes : catégorie cochée ET texte recherché
+                    elements.forEach(el => {
+                        if (el.classList.contains("separateur-annee")) return;
+                        const filtre = ["anniv", "event", "ferie", "repere"].find(f => el.classList.contains("filtre-" + f));
+                        const coche = confirmMessage.querySelector(`.filtres-annee input[data-filtre="filtre-${filtre}"]`).checked;
+                        el.style.display = (coche && sansAccents(el.textContent).includes(q)) ? "" : "none";
+                    });
+
+                    // 2) Étiquettes de mois : visibles seulement si le mois a une ligne visible
+                    let vuVisible = false;
+                    const apresOk = [];
+                    for (let i = elements.length - 1; i >= 0; i--) {
+                        if (elements[i].classList.contains("separateur-annee")) {
+                            apresOk[i] = vuVisible;
+                            vuVisible = false;
+                        } else if (elements[i].style.display !== "none") vuVisible = true;
+                    }
+                    elements.forEach((el, i) => {
+                        if (el.classList.contains("separateur-annee")) el.style.display = apresOk[i] ? "" : "none";
+                    });
+
+                    // 3) Message « aucun résultat »
+                    let aucun = document.getElementById("aucunResultatAnnee");
+                    const uneLigneVisible = elements.some(el => el.classList.contains("ligne-annee") && el.style.display !== "none");
+                    if (!uneLigneVisible) {
+                        if (!aucun) {
+                            aucun = document.createElement("div");
+                            aucun.id = "aucunResultatAnnee";
+                            aucun.className = "aucun-resultat";
+                            document.getElementById("rechercheAnnee").insertAdjacentElement("afterend", aucun);
+                        }
+                        const brut = document.getElementById("rechercheAnnee").value.trim();
+                        aucun.textContent = brut ? `Aucun résultat pour « ${brut} »` : "Aucun élément ne correspond aux catégories cochées.";
+                    } else if (aucun) {
+                        aucun.remove();
+                    }
+                };
+                document.getElementById("rechercheAnnee").addEventListener("input", majAffichage);
+                confirmMessage.querySelectorAll(".filtres-annee input").forEach(cb => {
+                    cb.addEventListener("change", majAffichage);
+                });
+				majAffichage();
+				confirmMessage.querySelectorAll(".ligne-annee").forEach(l => {
+                    l.addEventListener("click", async () => {
+                        confirmValider.click(); // ferme le confirmToast
+                        anneeAffilee = annee; // l'année naviguée devient celle de la grille
+                        moisAffiche = Number(l.dataset.mois);
+                        construireGrilleCalendrier();
+                        if (window.derniersHandlesCharges && window.derniersHandlesCharges.length > 0) {
+                            await traiterDossierImages(window.derniersHandlesCharges, false);
+                        }
+                    });
+                });
+            }
+        }
 
 		// ============================================================
 		// VUE ANNUELLE : 12 mini-calendriers cliquables
 		// ============================================================
-		let annee = anneeAffilee
         function construireVueAnnee() {
             const aujourdhui = new Date();
             document.getElementById("vueAnneeTitre").textContent = `📅 Année ${annee}`;
@@ -4079,7 +4232,14 @@
                     if (anniv) cls += " anniv";
                     if (evenmt) cls += " event";
                     if (actuel) cls += " actuel";
-                    html += `<span class="${cls}" data-mois="${m}" data-jour="${j}">${j}</span>`;
+					const titres = [];
+                    if (ferie) titres.push("🎉 " + ferie);
+                    if (repere) titres.push("✨ " + repere);
+                    if (anniv) titres.push("🎂 " + anniv);
+                    if (evenmt) titres.push("📌 " + evenmt);
+                    if (actuel) titres.push("📅 Aujourd'hui");
+                    const titreAttr = titres.length ? ` title="${titres.join(" • ").replaceAll('"', "&quot;")}"` : "";
+                    html += `<span class="${cls}" data-mois="${m}" data-jour="${j}"${titreAttr}>${j}</span>`
                     // Après un dimanche (sauf dernier jour du mois) : numéro de la semaine suivante
                     if (new Date(annee, m, j).getDay() === 0 && j !== nbJours) {
                         html += `<span class="semaine">S${getNumeroSemaine(new Date(annee, m, j + 1))}</span>`;
@@ -4133,20 +4293,28 @@
 		document.getElementById("vueAnneePrec").addEventListener("click", () => { annee--; construireVueAnnee(); });
 		document.getElementById("vueAnneeSuiv").addEventListener("click", () => { annee++; construireVueAnnee(); });
 
-		document.getElementById("resumeMois").addEventListener("click", async () => {
+        document.getElementById("resumeMois").addEventListener("click", () => {
+            mois = moisAffiche;
+            annee = anneeAffilee;
+            afficherInfoMois();
+        });
+
+        // Récapitulatif MENSUEL navigable (clic pastille sous la grille)
+        async function afficherInfoMois() {
 			const anniversaires = getAnniversaires();
 			const evenements = getEvenements();
+            const nbJours = new Date(annee, mois + 1, 0).getDate();
 			const lignes = [];
-			for (let i = 1; i <= nbJoursMois; i++) {
+            for (let i = 1; i <= nbJours; i++) {
 				const jourFormate = String(i).padStart(2, "0");
-				const nomJour = joursNoms[new Date(anneeAffilee, moisAffiche, i).getDay()];
-				const anniv = anniversaires[`${moisAffiche + 1}-${i}`];
+                const nomJour = joursNoms[new Date(annee, mois, i).getDay()];
+                const anniv = anniversaires[`${mois + 1}-${i}`];
 				if (anniv) lignes.push(`${nomJour} ${jourFormate} — 🎂 ${anniv}`);
-				const evt = evenements[`${anneeAffilee}-${moisAffiche + 1}-${i}`];
+                const evt = evenements[`${annee}-${mois + 1}-${i}`];
 				if (evt) lignes.push(`${nomJour} ${jourFormate} — 📌 ${evt}`);
 				// Férié ou repère du jour (même priorité que la grille : le férié prime)
-				const ferieMois = trouverJourFerie(anneeAffilee, moisAffiche, i);
-				const repereMois = trouverJoursReperes(anneeAffilee, moisAffiche, i);
+                const ferieMois = trouverJourFerie(annee, mois, i);
+                const repereMois = trouverJoursReperes(annee, mois, i);
 				if (ferieMois) {
 					lignes.push(`${nomJour} ${jourFormate} — <span style="color:#c084fc;font-weight:bold;">🎉 ${ferieMois}</span>`);
 				}
@@ -4154,11 +4322,28 @@
 					lignes.push(`${nomJour} ${jourFormate} — <span style="color:#fbbf24;font-weight:bold;">✨ ${repereMois}</span>`);
 				}
 			}
-			const versAnnee = lignes.length === 0
-				? await confirmToast(`📅 ${moisNoms[moisAffiche]} ${anneeAffilee}`, "Aucun anniversaire, événement, fête ni repère ce mois-ci.", "OK", "📅 Info année")
-				: await confirmToast(`📅 ${moisNoms[moisAffiche]} ${anneeAffilee}`, lignes.join("\n"), "OK", "📅 Info année");
-			if (versAnnee === false) listerAnnee();
+            const nav = `<div class="nav-annee">`
+                + `<button type="button" id="moisNavMoins" title="Mois précédent">◀</button>`
+				+ `📅 ${moisNoms[mois]} ${annee}`
+                + `<button type="button" id="moisNavPlus" title="Mois suivant">▶</button>`
+                + `</div>`;
+            const promesse = lignes.length === 0
+                ? confirmToast(nav, "Aucun anniversaire, événement, fête ni repère ce mois-ci.", "OK", "📅 Info année")
+                : confirmToast(nav, lignes.join("\n"), "OK", "📅 Info année");
+            // Listeners attachés avant l'await : la navigation re-rend la boîte
+            document.getElementById("moisNavMoins").addEventListener("click", () => {
+                mois--;
+                if (mois < 0) { mois = 11; annee--; }
+                afficherInfoMois();
 		});
+            document.getElementById("moisNavPlus").addEventListener("click", () => {
+                mois++;
+                if (mois > 11) { mois = 0; annee++; }
+                afficherInfoMois();
+            });
+            const versAnnee = await promesse;
+            if (versAnnee === false) listerAnnee(); // liste l'année naviguée (annee)
+        }
 
 		const joursSemaine = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
