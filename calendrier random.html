@@ -1926,6 +1926,14 @@
             border-top: 2px solid rgba(255, 255, 255, 0.60);
         }
 
+        /* Surlignage des correspondances de recherche dans « Info année » */
+        mark.surbrillance {
+            background: #fbbf24;
+            color: #2cd722;
+            border-radius: 3px;
+            padding: 0 2px;
+        }
+
         .aucun-resultat {
             color: #94a3b8;
             font-style: italic;
@@ -2988,7 +2996,7 @@
 				) {
 					supprimer = await confirmToast(`${nom}`, `Ce jour a déjà « ${existant} ». Voulez-vous le supprimer ?`, "🗑️ Supprimer", false);
 				} else {
-					supprimer = await confirmToast(`${nom}`, `Ce jour a déjà « ${existant} ». Voulez-vous le supprimer ?`, "🗑️ Supprimer", "✏️ Remplacer");
+					supprimer = await confirmToast(`${nom}`, `Ce jour a déjà « ${existant} ». Que voulez-vous faire ?`, "🗑️ Supprimer", "✏️ Remplacer");
 				}
 
                 if (supprimer === true) {
@@ -3047,7 +3055,7 @@
 
             if (existant) {
                 // Il y a déjà un anniversaire : supprimer, remplacer, ou abandon
-                const supprimer = await confirmToast(`${nom}`, `Ce jour a déjà « ${existant} ». Voulez-vous le supprimer ?`, "🗑️ Supprimer", "✏️ Remplacer");
+                const supprimer = await confirmToast(`${nom}`, `Ce jour a déjà « ${existant} ». Que voulez-vous faire ?`, "🗑️ Supprimer", "✏️ Remplacer");
                 if (supprimer === true) {
                     delete anniversaires[cle];
                     sauverAnniversaires(anniversaires);
@@ -4093,9 +4101,9 @@
                     const jourFormate = String(j).padStart(2, "0");
                     const nomJour = joursNoms[new Date(annee, m, j).getDay()];
                     const anniv = anniversaires[`${m + 1}-${j}`];
-                    if (anniv) { nbAnniv++; lignes.push(`<div class="ligne-annee filtre-anniv" data-mois="${m}">${nomJour} ${jourFormate} ${moisNoms[m]} — 🎂 ${anniv}</div>`); }
+                    if (anniv) { nbAnniv++; lignes.push(`<div class="ligne-annee filtre-anniv" data-mois="${m}">${nomJour} ${jourFormate} ${moisNoms[m]} — <span>🎂 ${anniv}</span></div>`); }
                     const evt = evenements[`${annee}-${m + 1}-${j}`];
-                    if (evt) { nbEvent++; lignes.push(`<div class="ligne-annee filtre-event" data-mois="${m}">${nomJour} ${jourFormate} ${moisNoms[m]} — 📌 ${evt}</div>`); }
+                    if (evt) { nbEvent++; lignes.push(`<div class="ligne-annee filtre-event" data-mois="${m}">${nomJour} ${jourFormate} ${moisNoms[m]} — <span>📌 ${evt}</span></div>`); }
                     const ferieAnnee = trouverJourFerie(annee, m, j);
                     const repereAnnee = trouverJoursReperes(annee, m, j);
                     if (ferieAnnee) { nbFerie++; lignes.push(`<div class="ligne-annee filtre-ferie" data-mois="${m}">${nomJour} ${jourFormate} ${moisNoms[m]} — <span style="color:#c084fc;font-weight:bold;">🎉 ${ferieAnnee}</span></div>`); }
@@ -4131,12 +4139,63 @@
                     + `<input type="search" id="rechercheAnnee" class="confirm-saisie" placeholder="🔎 Rechercher…">`;
                 confirmToast(nav, pills + lignes.join(""), "OK", false);
                 attacherNav();
+				// Recherche : restaurer le texte de la session (comme les filtres)
+                const champRecherche = document.getElementById("rechercheAnnee");
+                champRecherche.value = sessionStorage.getItem("rechercheAnnee") || "";
 
                 // Recherche insensible à la casse ET aux accents
                 const sansAccents = s => s.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
 
+                // Positions des correspondances (insensible casse + accents, sans chevauchement)
+                const positions = (texte, q) => {
+                    const res = [];
+                    if (!q) return res;
+                    for (let i = 0; i + q.length <= texte.length; i++) {
+                        if (sansAccents(texte.substring(i, i + q.length)) === q) {
+                            res.push([i, i + q.length]);
+                            i += q.length - 1;
+                        }
+                    }
+                    return res;
+                };
+
+                // Retire les <mark> existants (fusionne les nœuds texte)
+                const retirerSurlignage = (racine) => {
+                    racine.querySelectorAll("mark.surbrillance").forEach(m => {
+                        const parent = m.parentNode;
+                        while (m.firstChild) parent.insertBefore(m.firstChild, m);
+                        m.remove();
+                        parent.normalize();
+                    });
+                };
+
+                // Enveloppe les correspondances des nœuds texte (sans toucher aux spans colorés)
+                const surlignerDansNoeud = (noeud, q) => {
+                    [...noeud.childNodes].forEach(enfant => {
+                        if (enfant.nodeType === 3) {
+                            const texte = enfant.textContent;
+                            const res = positions(texte, q);
+                            if (!res.length) return;
+                            const morceaux = [];
+                            let dernier = 0;
+                            for (const [debut, fin] of res) {
+                                if (debut > dernier) morceaux.push(document.createTextNode(texte.slice(dernier, debut)));
+                                const mark = document.createElement("mark");
+                                mark.className = "surbrillance";
+                                mark.textContent = texte.slice(debut, fin);
+                                morceaux.push(mark);
+                                dernier = fin;
+                            }
+                            if (dernier < texte.length) morceaux.push(document.createTextNode(texte.slice(dernier)));
+                            enfant.replaceWith(...morceaux);
+                        } else if (enfant.nodeType === 1 && enfant.tagName !== "MARK") {
+                            surlignerDansNoeud(enfant, q);
+                        }
+                    });
+                };
+
                 const majAffichage = () => {
-                    const q = sansAccents(document.getElementById("rechercheAnnee").value).trim();
+                    const q = sansAccents(champRecherche.value).trim();
                     const elements = [...confirmMessage.querySelectorAll(".ligne-annee, .separateur-annee")];
 
                     // 1) Lignes : catégorie cochée ET texte recherché
@@ -4144,7 +4203,7 @@
                         if (el.classList.contains("separateur-annee")) return;
                         const filtre = ["anniv", "event", "ferie", "repere"].find(f => el.classList.contains("filtre-" + f));
                         const coche = confirmMessage.querySelector(`.filtres-annee input[data-filtre="filtre-${filtre}"]`).checked;
-                        el.style.display = (coche && sansAccents(el.textContent).includes(q)) ? "" : "none";
+                        el.style.display = (coche && sansAccents(el.querySelector("span").textContent).includes(q)) ? "" : "none";
                     });
 
                     // 2) Étiquettes de mois : visibles seulement si le mois a une ligne visible
@@ -4175,8 +4234,18 @@
                     } else if (aucun) {
                         aucun.remove();
                     }
+                    // 4) Surlignage des correspondances dans les lignes visibles
+                    retirerSurlignage(confirmMessage);
+                    if (q) {
+                        confirmMessage.querySelectorAll(".ligne-annee").forEach(el => {
+                            if (el.style.display !== "none") surlignerDansNoeud(el.querySelector("span"), q);
+                        });
+                    }
                 };
-                document.getElementById("rechercheAnnee").addEventListener("input", majAffichage);
+                champRecherche.addEventListener("input", (e) => {
+                    sessionStorage.setItem("rechercheAnnee", e.target.value);
+                    majAffichage();
+                });
                 confirmMessage.querySelectorAll(".filtres-annee input").forEach(cb => {
                     cb.addEventListener("change", () => {
                         const etats = {};
@@ -4320,9 +4389,9 @@
                 const jourFormate = String(i).padStart(2, "0");
                 const nomJour = joursNoms[new Date(annee, mois, i).getDay()];
                 const anniv = anniversaires[`${mois + 1}-${i}`];
-                if (anniv) lignes.push(`<div class="ligne-annee">${nomJour} ${jourFormate} — 🎂 ${anniv}</div>`);
+                if (anniv) lignes.push(`<div class="ligne-annee">${nomJour} ${jourFormate} — <span>🎂 ${anniv}</span></div>`);
                 const evt = evenements[`${annee}-${mois + 1}-${i}`];
-                if (evt) lignes.push(`<div class="ligne-annee">${nomJour} ${jourFormate} — 📌 ${evt}</div>`);
+                if (evt) lignes.push(`<div class="ligne-annee">${nomJour} ${jourFormate} — <span>📌 ${evt}</span></div>`);
                 // Férié ou repère du jour (même priorité que la grille : le férié prime)
                 const ferieMois = trouverJourFerie(annee, mois, i);
                 const repereMois = trouverJoursReperes(annee, mois, i);
