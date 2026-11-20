@@ -231,6 +231,10 @@
             background: rgba(15, 23, 42, 0.3);
         }
 
+        .drop-zone-text.cache {
+            display: none;
+        }
+
         #infoStatut {
 			display: inline-block;
             color: #cbd5e1;
@@ -1864,7 +1868,7 @@
 		}
 
         /* Navigation année/mois dans les boîtes Info année et Info mois */
-        .nav-annee {
+		.nav-annee {
 			display: inline-flex;
 			align-items: center;
 			justify-content: center;
@@ -2694,6 +2698,7 @@
 				</div>
 				<div class="actions-dossier">
 					<button id="btnDossier">📁 Sélectionner le dossier</button>
+					<input type="file" id="inputDossierSecours" webkitdirectory multiple hidden>
 					<span class="drop-zone-text">ou glissez-déposez votre dossier d'images ici</span>
 					<button id="btnToggleOpacite">👁️ Masquer les jours</button>
 				</div>
@@ -2895,7 +2900,8 @@
 		const fermerAlerteNavigateur = document.getElementById("fermerAlerteNavigateur");
 
 		if (!("showDirectoryPicker" in window)) {
-			alerteNavigateur.hidden = false;
+			// alerteNavigateur.hidden = false;
+			document.querySelector(".drop-zone-text").classList.add("cache");
 		}
 
 		fermerAlerteNavigateur.addEventListener("click", () => {
@@ -5151,8 +5157,43 @@
 			});
 		}
 
+		let dossierSecoursClear = true;
+        document.getElementById("inputDossierSecours").addEventListener("change", async (e) => {
+            const fichiers = [...e.target.files];
+            e.target.value = ""; // permet de rechoisir le MÊME dossier ensuite
+            if (fichiers.length === 0) return;
+
+            const extensionsChoisies = await choisirExtensions();
+            if (!extensionsChoisies) { infoStatut.textContent = "Sélection annulée."; return; }
+            const EXT_RE = new RegExp(`\\.(?:${extensionsChoisies.join("|")})$`, "i");
+
+            // Shims compatibles avec le pipeline : getFile(), name, kind
+            const rawHandles = fichiers
+                .filter(f => EXT_RE.test(f.name))
+                .map(f => ({ name: f.name, kind: "file", getFile: async () => f }));
+
+            if (rawHandles.length > 0) {
+                loaderOverlay.classList.remove("cache");
+                infoStatut.textContent = "🔍 Analyse du dossier en cours...";
+                if (dossierSecoursClear) {
+                    viderLocalStorageProprement();
+                }
+                await sauvegarderDossierDropFichiers();
+                await traiterDossierImages(rawHandles, true);
+            } else {
+                loaderOverlay.classList.add("cache");
+                toast("Aucune image trouvée dans le dossier sélectionné !", "warning");
+            }
+        });
+
 		async function selectionnerDossierImages( clearLocalStorage = true ) {
+			dossierSecoursClear = clearLocalStorage;
 			try {
+				if (!("showDirectoryPicker" in window)) {
+					// Navigateur sans File System Access (Firefox…) : secours direct
+					document.getElementById("inputDossierSecours").click();
+					return;
+				}
 				const dirHandle = await window.showDirectoryPicker();
 
 				// Choix des extensions par l'utilisateur (tout coché par défaut)
@@ -5180,6 +5221,10 @@
 			} catch (err) {
 				loaderOverlay.classList.add("cache");
 				console.log("Sélection annulée :", err);
+				if (err.name === "AbortError") {
+                    const secours = await confirmToast("Sélecteur bloqué", "Le sélecteur natif de dossiers a été bloqué par votre navigateur. Voulez-vous sélectionner le dossier en mode secours ?", "📁 Choisir le dossier", "Fermer");
+                    if (secours) document.getElementById("inputDossierSecours").click();
+                }
 				infoStatut.textContent = "Sélection de dossier annulée.";
 			}
 		}
